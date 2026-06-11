@@ -1,0 +1,52 @@
+import type { ArmorTuning } from "./tuning";
+
+/** Stat hashes for the 6 armor stats, stable across Destiny 2's lifetime. */
+export const ARMOR_STAT_HASHES = {
+  mobility: 2996146975,
+  resilience: 392767087,
+  recovery: 1943323491,
+  discipline: 1735777505,
+  intellect: 144602215,
+  strength: 4244567218,
+} as const;
+
+export type ArmorStatName = keyof typeof ARMOR_STAT_HASHES;
+
+export type ArmorStats = Record<ArmorStatName, number>;
+
+/** Inventory bucket hashes for the 5 armor slots, stable across Destiny 2's lifetime. */
+export const ARMOR_BUCKET_HASHES = {
+  helmet: 3448274439,
+  gauntlets: 3551918588,
+  chest: 14239492,
+  legs: 20886954,
+  classItem: 1585787867,
+} as const;
+
+export type ArmorSlot = keyof typeof ARMOR_BUCKET_HASHES;
+
+export interface ArmorItem {
+  itemInstanceId: string;
+  itemHash: number;
+  name: string;
+  icon: string;
+  slot: ArmorSlot;
+  tierType: number;
+  classType: number;
+  stats: ArmorStats;
+  /** Tier 5 stat-tuning currently applied to this piece, if any. */
+  tuning: ArmorTuning;
+  /** Item power level. */
+  power: number;
+  /** Gear tier (e.g. 5 for Edge of Fate "Tier 5" armor), if known. */
+  gearTier: number | undefined;
+  /** Whether the item has full (10/10) masterwork energy capacity. */
+  isMasterworked: boolean;
+  /** "vault" or a characterId */
+  location: string;
+}
+
+export interface ArmorInventory {
+  vault: ArmorItem[];
+  characters: Record<string, ArmorItem[]>;
+}

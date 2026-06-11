@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+:root {
+  --background: #05070a;
+  --foreground: #e7edf4;
+
+  --color-panel: #0d1117;
+  --color-panel-raised: #131a24;
+  --color-border: #1f2a38;
+
+  --color-solar: #f2721b;
+  --color-arc: #6fc6e8;
+  --color-void: #b184e0;
+  --color-stasis: #4d88ff;
+  --color-strand: #4f9d6e;
+
+  --color-accent: var(--color-arc);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--color-panel);
+  --color-panel-raised: var(--color-panel-raised);
+  --color-border: var(--color-border);
+
+  --color-solar: var(--color-solar);
+  --color-arc: var(--color-arc);
+  --color-void: var(--color-void);
+  --color-stasis: var(--color-stasis);
+  --color-strand: var(--color-strand);
+  --color-accent: var(--color-accent);
+
+  --font-display: var(--font-rajdhani);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-arc);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(111, 198, 232, 0.12), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(177, 132, 224, 0.08), transparent 60%),
+    var(--background);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+.text-glow-arc {
+  text-shadow: 0 0 12px rgba(111, 198, 232, 0.6);
+}
+
+.glow-arc {
+  box-shadow: 0 0 16px 1px rgba(111, 198, 232, 0.35);
+}
+
+.glow-solar {
+  box-shadow: 0 0 16px 1px rgba(242, 114, 27, 0.35);
+}
+
+.glow-void {
+  box-shadow: 0 0 16px 1px rgba(177, 132, 224, 0.35);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(111, 198, 232, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(111, 198, 232, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
