@@ -22,6 +22,10 @@ export const ARMOR_STAT_ORDER: ArmorStatName[] = [
 /** Approximate max value of a single armor stat (legendary, masterworked + tuning). */
 export const ARMOR_STAT_MAX = 40;
 
+/** Slider range for the optimizer's per-stat thresholds (totals across a 5-piece loadout). */
+export const OPTIMIZER_STAT_MAX = 200;
+export const OPTIMIZER_STAT_STEP = 5;
+
 export const ARMOR_SLOT_LABELS = {
   helmet: "Helmet",
   gauntlets: "Gauntlets",
