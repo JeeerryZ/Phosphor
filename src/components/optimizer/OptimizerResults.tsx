@@ -34,42 +34,52 @@ export function OptimizerResults({ results, thresholds, optimizeFor }: Optimizer
       <p className="text-xs uppercase tracking-wider text-foreground/40">
         {filtered.length} combination{filtered.length === 1 ? "" : "s"}
       </p>
-      {filtered.map((result, index) => (
-        <details key={index} className="rounded-lg border border-border bg-panel/80 p-3">
-          <summary className="flex cursor-pointer flex-wrap gap-3 text-sm">
-            {ARMOR_STAT_ORDER.map((stat) => (
-              <span
-                key={stat}
-                className={cn(
-                  "tabular-nums",
-                  stat === optimizeFor ? "font-semibold text-arc" : "text-foreground/70"
-                )}
-              >
-                {ARMOR_STAT_LABELS[stat]} {result.stats[stat]}
-              </span>
-            ))}
-          </summary>
-          <div className="mt-3 flex flex-col gap-1 text-xs text-foreground/60">
-            {SLOT_ORDER.map((slot) => {
-              const choice = result.loadout[slot];
-              if (!choice) return null;
-              return (
-                <p key={slot}>
-                  <span className="text-foreground/40">{ARMOR_SLOT_LABELS[slot]}:</span> {choice.item.name}
-                  {choice.tuning.kind === "directional" && (
-                    <span>
-                      {" "}
-                      (tuning: +{ARMOR_STAT_LABELS[choice.tuning.increasedStat]} / -
-                      {ARMOR_STAT_LABELS[choice.tuning.decreasedStat]})
-                    </span>
+      {filtered.map((result, index) => {
+        const resultKey = SLOT_ORDER.map((slot) => {
+          const choice = result.loadout[slot];
+          return choice ? `${choice.item.itemInstanceId}:${choice.tuning.kind}` : "-";
+        }).join("|");
+
+        return (
+          <details key={resultKey} className="rounded-lg border border-border bg-panel/80 p-3">
+            <summary
+              className="flex cursor-pointer flex-wrap gap-3 text-sm"
+              aria-label={`Loadout ${index + 1} of ${filtered.length}, expand for details`}
+            >
+              {ARMOR_STAT_ORDER.map((stat) => (
+                <span
+                  key={stat}
+                  className={cn(
+                    "tabular-nums",
+                    stat === optimizeFor ? "font-semibold text-arc" : "text-foreground/70"
                   )}
-                  {choice.tuning.kind === "balanced" && <span> (tuning: balanced)</span>}
-                </p>
-              );
-            })}
-          </div>
-        </details>
-      ))}
+                >
+                  {ARMOR_STAT_LABELS[stat]} {result.stats[stat]}
+                </span>
+              ))}
+            </summary>
+            <div className="mt-3 flex flex-col gap-1 text-xs text-foreground/60">
+              {SLOT_ORDER.map((slot) => {
+                const choice = result.loadout[slot];
+                if (!choice) return null;
+                return (
+                  <p key={slot}>
+                    <span className="text-foreground/40">{ARMOR_SLOT_LABELS[slot]}:</span> {choice.item.name}
+                    {choice.tuning.kind === "directional" && (
+                      <span>
+                        {" "}
+                        (tuning: +{ARMOR_STAT_LABELS[choice.tuning.increasedStat]} / -
+                        {ARMOR_STAT_LABELS[choice.tuning.decreasedStat]})
+                      </span>
+                    )}
+                    {choice.tuning.kind === "balanced" && <span> (tuning: balanced)</span>}
+                  </p>
+                );
+              })}
+            </div>
+          </details>
+        );
+      })}
     </div>
   );
 }
