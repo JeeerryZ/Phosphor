@@ -63,6 +63,7 @@ export function OptimizerControls({
               step={OPTIMIZER_STAT_STEP}
               value={thresholds[stat]}
               onChange={(e) => onThresholdChange(stat, Number(e.target.value))}
+              aria-label={`${ARMOR_STAT_LABELS[stat]} threshold`}
               className="flex-1"
             />
             <span className="w-10 shrink-0 text-right text-xs tabular-nums">{thresholds[stat]}</span>
