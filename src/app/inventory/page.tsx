@@ -31,12 +31,20 @@ export default async function InventoryPage() {
             <h1 className="font-display text-3xl font-bold tracking-wide sm:text-4xl">
               ARMOR <span className="text-arc text-glow-arc">INVENTORY</span>
             </h1>
-            <a
-              href="/api/auth/logout"
-              className="font-display text-foreground/60 hover:text-foreground text-xs uppercase tracking-wider transition-colors"
-            >
-              Log out
-            </a>
+            <div className="flex items-center gap-4">
+              <a
+                href="/optimizer"
+                className="font-display text-foreground/60 hover:text-foreground text-xs uppercase tracking-wider transition-colors"
+              >
+                Optimizer
+              </a>
+              <a
+                href="/api/auth/logout"
+                className="font-display text-foreground/60 hover:text-foreground text-xs uppercase tracking-wider transition-colors"
+              >
+                Log out
+              </a>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
