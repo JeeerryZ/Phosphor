@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ArmorInventory, ArmorItem, ArmorStatName, ArmorStats } from "@/lib/armor/types";
 import type { OptimizerResult } from "@/lib/optimizer";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
@@ -34,8 +34,10 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
   const [thresholds, setThresholds] = useState<ArmorStats>(zeroThresholds());
   const [optimizeFor, setOptimizeFor] = useState<ArmorStatName>(ARMOR_STAT_ORDER[0]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const requestIdRef = useRef(0);
 
   async function handleSelectExotic(item: ArmorItem) {
+    const requestId = ++requestIdRef.current;
     setSelectedExotic(item);
     setResults([]);
     setThresholds(zeroThresholds());
@@ -53,9 +55,11 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
       }
 
       const data = (await response.json()) as { results: OptimizerResult[] };
+      if (requestIdRef.current !== requestId) return;
       setResults(data.results);
       setStatus("idle");
     } catch {
+      if (requestIdRef.current !== requestId) return;
       setStatus("error");
     }
   }
@@ -66,17 +70,23 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
         items={allItems}
         selectedClassType={classType}
         onSelectClassType={(next) => {
+          requestIdRef.current += 1;
           setClassType(next);
           setSelectedExotic(null);
           setResults([]);
+          setStatus("idle");
         }}
         selectedItemInstanceId={selectedExotic?.itemInstanceId ?? null}
         onSelect={handleSelectExotic}
       />
 
-      {status === "loading" && <p className="text-sm text-foreground/50">Computing combinations...</p>}
+      {status === "loading" && (
+        <p role="status" aria-live="polite" className="text-sm text-foreground/50">
+          Computing combinations...
+        </p>
+      )}
       {status === "error" && (
-        <p className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-red-400">
           Something went wrong computing results.{" "}
           {selectedExotic && (
             <button type="button" onClick={() => handleSelectExotic(selectedExotic)} className="underline">
