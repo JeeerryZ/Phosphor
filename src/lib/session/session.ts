@@ -4,7 +4,7 @@ import { sessionConfig } from "../bungie/config";
 import { refreshAccessToken } from "../bungie/oauth";
 import type { SessionData } from "./types";
 
-const REFRESH_BUFFER_MS = 60_000;
+export const REFRESH_BUFFER_MS = 60_000;
 
 export const sessionOptions: SessionOptions = {
   cookieName: sessionConfig.cookieName,
