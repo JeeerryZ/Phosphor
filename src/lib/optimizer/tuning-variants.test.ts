@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import type { ArmorItem, ArmorStats } from "@/lib/armor/types";
 import type { ArmorTuning } from "@/lib/armor/tuning";
 import { computeTuningVariants, directionalTuningPairs } from "./tuning-variants";
-import { zeroVector } from "./vectors";
 
 function makeItem(stats: ArmorStats, tuning: ArmorTuning): ArmorItem {
   return {
