@@ -37,7 +37,13 @@ export function OptimizerResults({ results, thresholds, optimizeFor }: Optimizer
       {filtered.map((result, index) => {
         const resultKey = SLOT_ORDER.map((slot) => {
           const choice = result.loadout[slot];
-          return choice ? `${choice.item.itemInstanceId}:${choice.tuning.kind}` : "-";
+          return choice
+            ? `${choice.item.itemInstanceId}:${choice.tuning.kind}${
+                choice.tuning.kind === "directional"
+                  ? `:${choice.tuning.increasedStat}-${choice.tuning.decreasedStat}`
+                  : ""
+              }`
+            : "-";
         }).join("|");
 
         return (
