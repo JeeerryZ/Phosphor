@@ -53,17 +53,24 @@ before combining items.
 For each of the 5 slots (4 open + the locked exotic's slot, which has exactly 1 candidate), build
 the list of `(item, stats: item.stats, hasTuning: item.tuning.kind !== "none")`.
 
-Prune within each slot:
+Prune within each slot, but **tuned and untuned items need different rules** because they have
+different delta menus (tuned items can reach 32 vectors from their base; untuned items can only
+stay at their base, i.e. delta = zero):
 
-- Drop any item whose `stats` is dominated by another item's `stats` in the same slot
-  (`dominates`), **regardless of `hasTuning`** - a dominator can always reproduce the dominated
-  item's contribution by picking the zero tuning delta (every item, tuned or not, has access to
-  the zero delta).
-- The remaining frontier may contain a mix of tuned and untuned items; this is correct and
-  intentional (an untuned item can still be useful if no other item's base stats dominate it).
+- Among **tuned** items: prune normally with `paretoFrontier`/`dedupeByStats` on `item.stats`. This
+  is safe because all tuned items share the identical 32-delta menu, so if `B.stats` dominates
+  `A.stats`, then `B.stats + d` dominates-or-equals `A.stats + d` for every shared delta `d`.
+- Among **untuned** items: prune normally with `paretoFrontier`/`dedupeByStats` on `item.stats` (an
+  untuned item's only contribution is its base stats).
+- Then drop any surviving untuned item whose `stats` is dominated by any surviving **tuned**
+  item's `stats` - a tuned item can always pick the zero (`empty`) delta, so it reproduces the
+  untuned item's contribution exactly.
+- **Do not** drop a tuned item just because an untuned item dominates it - the tuned item's
+  non-zero deltas may reach vectors the untuned item can never match (e.g. untuned `B` dominates
+  tuned `A` by a small margin in stat X, but `A`'s directional delta `+5` to stat X can still push
+  `A` above `B` there).
 
-This is the existing `paretoFrontier`/`dedupeByStats` applied to `item.stats` directly (no tuning
-variants expanded yet).
+The slot frontier is the union of the pruned tuned items and the surviving untuned items.
 
 ### Step 2: Item-selection frontier, tagged by tuning count `k`
 
@@ -143,10 +150,20 @@ for the global result. This is the same `OptimizerResult[]` shape as today - no 
   real 252-vector set) - so every result is genuinely achievable.
 - Every achievable vector is representable this way (the split is just regrouping the sum), and is
   not lost by any pruning step:
-  - Step 1 pruning only drops an item if another item in the same slot dominates it *and* offers
-    at least as rich a delta menu (every item offers the zero delta, so domination by any item is
-    sufficient) - so no achievable per-slot base contribution is lost.
-  - Steps 2-4 use the existing, already-proven-correct `paretoFrontier`/`dedupeByStats` at each
+  - Step 1 pruning follows the tuned/untuned rule above: an item is only dropped when the
+    survivor's delta menu is a superset of the dropped item's (tuned items are only dropped by
+    other tuned items sharing the identical menu; untuned items are dropped by any item, since a
+    tuned dominator can always pick its zero delta) - so no achievable per-slot base contribution
+    is lost.
+  - Step 2 pruning compares only raw item-stat sums, mixing loadouts with different tuned-item
+    counts `k`. This is safe because `ADJ[k]` is monotonically "coverable" by `ADJ[k']` for `k' >
+    k`: every adjustment in `ADJ[k]` is also achievable with `k'` tuned slots by assigning `empty`
+    (zero delta) to the extra `k' - k` slots. So if loadout `L2` (with count `k2`) is dominated by
+    `L4` (with count `k4 > k2`), then for every `adj2 in ADJ[k2]`, `L2.stats + adj2 <= L4.stats +
+    adj2 <= L4.stats + adj4` for some `adj4 in ADJ[k4]` that dominates-or-equals `adj2` - so every
+    final result reachable from `L2` is dominated by one reachable from `L4`, and dropping `L2`
+    loses nothing.
+  - Steps 3-4 use the existing, already-proven-correct `paretoFrontier`/`dedupeByStats` at each
     combination step; by transitivity of `dominates`, iterated pruning of maximal elements yields
     the same frontier as pruning the full cross product at once.
 
