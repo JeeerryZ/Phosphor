@@ -1,34 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { ArmorItem, ArmorStats } from "@/lib/armor/types";
-import type { ArmorTuning } from "@/lib/armor/tuning";
-import { computeTuningVariants, directionalTuningPairs } from "./tuning-variants";
-
-function makeItem(stats: ArmorStats, tuning: ArmorTuning): ArmorItem {
-  return {
-    itemInstanceId: "test-item",
-    itemHash: 0,
-    name: "Test Item",
-    icon: "",
-    slot: "helmet",
-    tierType: 5,
-    classType: 0,
-    stats,
-    tuning,
-    power: 0,
-    gearTier: tuning.kind === "none" ? undefined : 5,
-    isMasterworked: true,
-    location: "vault",
-  };
-}
-
-const BASE_STATS: ArmorStats = {
-  mobility: 10,
-  resilience: 20,
-  recovery: 30,
-  discipline: 5,
-  intellect: 15,
-  strength: 0,
-};
+import { directionalTuningPairs, tuningDeltaVector, tuningDeltas } from "./tuning-variants";
+import { dedupeByStats, vectorKey, zeroVector } from "./vectors";
 
 describe("directionalTuningPairs", () => {
   it("returns all 30 ordered pairs of distinct stats", () => {
@@ -41,57 +13,71 @@ describe("directionalTuningPairs", () => {
   });
 });
 
-describe("computeTuningVariants", () => {
-  it("returns a single unmodified variant for items without a tuning socket", () => {
-    const item = makeItem(BASE_STATS, { kind: "none" });
-    const variants = computeTuningVariants(item);
-
-    expect(variants).toHaveLength(1);
-    expect(variants[0]).toEqual({ tuning: { kind: "none" }, stats: BASE_STATS });
+describe("tuningDeltas", () => {
+  it("returns 32 entries: empty + balanced + 30 directional", () => {
+    const deltas = tuningDeltas();
+    expect(deltas).toHaveLength(32);
+    expect(deltas.filter((d) => d.tuning.kind === "empty")).toHaveLength(1);
+    expect(deltas.filter((d) => d.tuning.kind === "balanced")).toHaveLength(1);
+    expect(deltas.filter((d) => d.tuning.kind === "directional")).toHaveLength(30);
   });
 
-  it("returns 32 variants for Tier 5 armor (empty + balanced + 30 directional)", () => {
-    const item = makeItem(BASE_STATS, { kind: "empty" });
-    const variants = computeTuningVariants(item);
-    expect(variants).toHaveLength(32);
+  it("the empty delta is zero", () => {
+    const empty = tuningDeltas().find((d) => d.tuning.kind === "empty");
+    expect(empty?.delta).toEqual(zeroVector());
   });
 
-  it("the balanced variant adds +1 to every stat", () => {
-    const item = makeItem(BASE_STATS, { kind: "empty" });
-    const variants = computeTuningVariants(item);
-    const balanced = variants.find((v) => v.tuning.kind === "balanced");
-
-    expect(balanced?.stats).toEqual({
-      mobility: 11,
-      resilience: 21,
-      recovery: 31,
-      discipline: 6,
-      intellect: 16,
+  it("the balanced delta adds +1 to every stat", () => {
+    const balanced = tuningDeltas().find((d) => d.tuning.kind === "balanced");
+    expect(balanced?.delta).toEqual({
+      mobility: 1,
+      resilience: 1,
+      recovery: 1,
+      discipline: 1,
+      intellect: 1,
       strength: 1,
     });
   });
 
-  it("a directional variant moves 5 points from the decreased stat to the increased stat", () => {
-    const item = makeItem(BASE_STATS, { kind: "empty" });
-    const variants = computeTuningVariants(item);
-    const variant = variants.find(
-      (v) =>
-        v.tuning.kind === "directional" &&
-        v.tuning.increasedStat === "intellect" &&
-        v.tuning.decreasedStat === "mobility"
+  it("each directional delta moves 5 points from the decreased stat to the increased stat", () => {
+    const directional = tuningDeltas().find(
+      (d) =>
+        d.tuning.kind === "directional" &&
+        d.tuning.increasedStat === "intellect" &&
+        d.tuning.decreasedStat === "mobility"
     );
 
-    expect(variant?.stats).toEqual({
-      ...BASE_STATS,
-      mobility: BASE_STATS.mobility - 5,
-      intellect: BASE_STATS.intellect + 5,
+    expect(directional?.delta).toEqual({
+      ...zeroVector(),
+      mobility: -5,
+      intellect: 5,
     });
   });
 
-  it("the empty variant is unmodified", () => {
-    const item = makeItem(BASE_STATS, { kind: "empty" });
-    const variants = computeTuningVariants(item);
-    const empty = variants.find((v) => v.tuning.kind === "empty");
-    expect(empty?.stats).toEqual(BASE_STATS);
+  it("has no duplicate delta vectors", () => {
+    expect(dedupeByStats(tuningDeltas().map((d) => ({ stats: d.delta })))).toHaveLength(32);
+  });
+});
+
+describe("tuningDeltaVector", () => {
+  it("is zero for 'none' and 'empty'", () => {
+    expect(tuningDeltaVector({ kind: "none" })).toEqual(zeroVector());
+    expect(tuningDeltaVector({ kind: "empty" })).toEqual(zeroVector());
+  });
+
+  it("is +1 to every stat for 'balanced'", () => {
+    expect(tuningDeltaVector({ kind: "balanced" })).toEqual({
+      mobility: 1,
+      resilience: 1,
+      recovery: 1,
+      discipline: 1,
+      intellect: 1,
+      strength: 1,
+    });
+  });
+
+  it("matches tuningDeltas for 'directional'", () => {
+    const directional = tuningDeltas().find((d) => d.tuning.kind === "directional")!;
+    expect(vectorKey(tuningDeltaVector(directional.tuning))).toBe(vectorKey(directional.delta));
   });
 });

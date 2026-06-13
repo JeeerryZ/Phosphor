@@ -1,12 +1,7 @@
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
-import type { ArmorItem, ArmorStatName } from "@/lib/armor/types";
+import type { ArmorStatName } from "@/lib/armor/types";
 import type { ArmorTuning } from "@/lib/armor/tuning";
-import { addVectors, zeroVector, type StatVector } from "./vectors";
-
-export interface TuningVariant {
-  tuning: ArmorTuning;
-  stats: StatVector;
-}
+import { zeroVector, type StatVector } from "./vectors";
 
 /** All 30 ordered pairs of distinct stats - the directional Tier 5 tuning options. */
 export function directionalTuningPairs(): Array<{
@@ -33,28 +28,36 @@ function balancedDelta(): StatVector {
 }
 
 /**
- * All achievable stat vectors for an item across its Tier 5 tuning options. Items without a
- * tuning socket (`tuning.kind === "none"`) have exactly one variant: their unmodified stats.
+ * The universal set of 32 Tier 5 tuning deltas available to any item with a tuning socket: empty
+ * (no change), balanced (+1 to every stat), and the 30 directional +5/-5 swaps. Every tuned item
+ * shares this exact menu, independent of its base stats.
  */
-export function computeTuningVariants(item: ArmorItem): TuningVariant[] {
-  if (item.tuning.kind === "none") {
-    return [{ tuning: { kind: "none" }, stats: item.stats }];
-  }
-
-  const variants: TuningVariant[] = [
-    { tuning: { kind: "empty" }, stats: item.stats },
-    { tuning: { kind: "balanced" }, stats: addVectors(item.stats, balancedDelta()) },
+export function tuningDeltas(): Array<{ tuning: ArmorTuning; delta: StatVector }> {
+  const deltas: Array<{ tuning: ArmorTuning; delta: StatVector }> = [
+    { tuning: { kind: "empty" }, delta: zeroVector() },
+    { tuning: { kind: "balanced" }, delta: balancedDelta() },
   ];
 
   for (const { increasedStat, decreasedStat } of directionalTuningPairs()) {
     const delta = zeroVector();
     delta[increasedStat] += 5;
     delta[decreasedStat] -= 5;
-    variants.push({
-      tuning: { kind: "directional", increasedStat, decreasedStat },
-      stats: addVectors(item.stats, delta),
-    });
+    deltas.push({ tuning: { kind: "directional", increasedStat, decreasedStat }, delta });
   }
 
-  return variants;
+  return deltas;
+}
+
+/** The stat delta contributed by a given tuning choice (zero for "none" and "empty"). */
+export function tuningDeltaVector(tuning: ArmorTuning): StatVector {
+  if (tuning.kind === "balanced") {
+    return balancedDelta();
+  }
+  if (tuning.kind === "directional") {
+    const delta = zeroVector();
+    delta[tuning.increasedStat] += 5;
+    delta[tuning.decreasedStat] -= 5;
+    return delta;
+  }
+  return zeroVector();
 }
