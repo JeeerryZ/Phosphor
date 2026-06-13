@@ -1,43 +1,50 @@
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
-import { addVectors, vectorKey, zeroVector, type StatVector } from "./vectors";
+import { zeroVector, type StatVector } from "./vectors";
 
 const MOD_SLOTS_PER_LOADOUT = 5;
+const MOD_BONUS = 10;
 
-/** A single mod slot is empty, +10 to one stat, or +5 to one stat - 13 options. */
-function modOptions(): StatVector[] {
-  const options: StatVector[] = [zeroVector()];
-  for (const stat of ARMOR_STAT_ORDER) {
-    options.push({ ...zeroVector(), [stat]: 10 });
-    options.push({ ...zeroVector(), [stat]: 5 });
+/**
+ * All ways to distribute `slots` indistinguishable tokens across `statCount` stats, as arrays of
+ * per-stat counts summing to `slots` (combinations with repetition).
+ */
+function* tokenAllocations(slots: number, statCount: number): Generator<number[]> {
+  if (statCount === 1) {
+    yield [slots];
+    return;
   }
-  return options;
+  for (let count = 0; count <= slots; count++) {
+    for (const rest of tokenAllocations(slots - count, statCount - 1)) {
+      yield [count, ...rest];
+    }
+  }
 }
 
 let cachedModDeltaSet: StatVector[] | null = null;
 
 /**
- * All distinct stat-vector sums achievable by independently choosing a mod option for each of
- * the loadout's `MOD_SLOTS_PER_LOADOUT` mod slots. Item-independent, so computed once and cached.
+ * The Pareto frontier of achievable stat-vector sums from independently choosing a mod option
+ * (none, +5, or +10 to one stat) for each of the loadout's `MOD_SLOTS_PER_LOADOUT` mod slots.
+ *
+ * A mod slot below +10 (or empty) can always be raised to +10 on the same stat, strictly
+ * improving that stat with no other change - so every non-dominated combination uses all 5
+ * slots at +10. The frontier is therefore exactly the ways to distribute 5 "+10" tokens across
+ * the 6 stats: C(5 + 6 - 1, 5) = 252 vectors.
  */
 export function getModDeltaSet(): StatVector[] {
   if (cachedModDeltaSet) {
     return cachedModDeltaSet;
   }
 
-  const options = modOptions();
-  let current = new Map<string, StatVector>([[vectorKey(zeroVector()), zeroVector()]]);
-
-  for (let i = 0; i < MOD_SLOTS_PER_LOADOUT; i++) {
-    const next = new Map<string, StatVector>();
-    for (const acc of current.values()) {
-      for (const option of options) {
-        const sum = addVectors(acc, option);
-        next.set(vectorKey(sum), sum);
-      }
-    }
-    current = next;
+  const result: StatVector[] = [];
+  for (const counts of tokenAllocations(MOD_SLOTS_PER_LOADOUT, ARMOR_STAT_ORDER.length)) {
+    const vector = zeroVector();
+    ARMOR_STAT_ORDER.forEach((stat, i) => {
+      vector[stat] = counts[i] * MOD_BONUS;
+    });
+    result.push(vector);
   }
 
-  cachedModDeltaSet = Array.from(current.values());
+  cachedModDeltaSet = result;
   return cachedModDeltaSet;
 }

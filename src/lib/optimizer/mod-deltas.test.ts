@@ -1,24 +1,48 @@
 import { describe, it, expect } from "vitest";
 import { getModDeltaSet } from "./mod-deltas";
-import { vectorKey, zeroVector } from "./vectors";
+import { dominates } from "./pareto";
+import { vectorKey, type StatVector } from "./vectors";
 
 describe("getModDeltaSet", () => {
-  it("includes the all-zero vector (every mod slot empty)", () => {
+  it("contains exactly the 252 ways to distribute 5 +10 mods across 6 stats", () => {
     const deltas = getModDeltaSet();
-    expect(deltas.some((d) => vectorKey(d) === vectorKey(zeroVector()))).toBe(true);
+    // C(5 + 6 - 1, 5) = C(10, 5) = 252.
+    expect(deltas.length).toBe(252);
   });
 
   it("includes +50 to a single stat (five +10 mods on the same stat)", () => {
     const deltas = getModDeltaSet();
-    const maxMobility = { ...zeroVector(), mobility: 50 };
+    const maxMobility: StatVector = {
+      mobility: 50,
+      resilience: 0,
+      recovery: 0,
+      discipline: 0,
+      intellect: 0,
+      strength: 0,
+    };
     expect(deltas.some((d) => vectorKey(d) === vectorKey(maxMobility))).toBe(true);
   });
 
-  it("is bounded by the number of 5-multisets of the 13 mod options", () => {
+  it("every entry has stat values that are multiples of 10 summing to 50", () => {
+    for (const delta of getModDeltaSet()) {
+      const total = Object.values(delta).reduce((sum, value) => sum + value, 0);
+      expect(total).toBe(50);
+      for (const value of Object.values(delta)) {
+        expect(value % 10).toBe(0);
+      }
+    }
+  });
+
+  it("contains no vector dominated by another (it is itself a Pareto frontier)", () => {
     const deltas = getModDeltaSet();
-    // C(13 + 5 - 1, 5) = C(17, 5) = 6188 raw multisets; distinct sums must be <= that.
-    expect(deltas.length).toBeGreaterThan(0);
-    expect(deltas.length).toBeLessThanOrEqual(6188);
+    for (const candidate of deltas) {
+      expect(deltas.some((other) => dominates(other, candidate))).toBe(false);
+    }
+  });
+
+  it("has no duplicate vectors", () => {
+    const keys = getModDeltaSet().map(vectorKey);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("is cached across calls", () => {
