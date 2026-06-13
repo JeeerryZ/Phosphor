@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addVectors, zeroVector, vectorKey, dedupeByStats } from "./vectors";
+import { addVectors, subtractVectors, zeroVector, vectorKey, dedupeByStats } from "./vectors";
 
 describe("zeroVector", () => {
   it("has all six stats at zero", () => {
@@ -23,6 +23,21 @@ describe("addVectors", () => {
       resilience: 20,
       recovery: 10,
       discipline: 0,
+      intellect: 0,
+      strength: 0,
+    });
+  });
+});
+
+describe("subtractVectors", () => {
+  it("subtracts each stat independently, including negative results", () => {
+    const a = { mobility: 10, resilience: 20, recovery: 0, discipline: 5, intellect: 0, strength: 0 };
+    const b = { mobility: 5, resilience: 0, recovery: 10, discipline: -5, intellect: 0, strength: 0 };
+    expect(subtractVectors(a, b)).toEqual({
+      mobility: 5,
+      resilience: 20,
+      recovery: -10,
+      discipline: 10,
       intellect: 0,
       strength: 0,
     });

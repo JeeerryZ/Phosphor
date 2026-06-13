@@ -22,6 +22,14 @@ export function addVectors(a: StatVector, b: StatVector): StatVector {
   return result;
 }
 
+export function subtractVectors(a: StatVector, b: StatVector): StatVector {
+  const result = zeroVector();
+  for (const stat of ARMOR_STAT_ORDER) {
+    result[stat] = a[stat] - b[stat];
+  }
+  return result;
+}
+
 /** Stable string key for a stat vector, suitable for Map/Set dedup. */
 export function vectorKey(vector: StatVector): string {
   return ARMOR_STAT_ORDER.map((stat) => vector[stat]).join(",");
