@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
-import type { ArmorItem, ArmorStats } from "@/lib/armor/types";
-import { combineSlots, type SlotChoice } from "./combine";
+import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
+import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
+import { ALL_SLOTS, selectItemCombinations, type SlotCandidate } from "./combine";
 import { zeroVector } from "./vectors";
 
-function makeItem(slot: ArmorItem["slot"], name: string, stats: ArmorStats): ArmorItem {
-  return {
+function makeCandidate(slot: ArmorSlot, name: string, stats: ArmorStats, hasTuning = false): SlotCandidate {
+  const item: ArmorItem = {
     itemInstanceId: name,
     itemHash: 0,
     name,
@@ -15,44 +16,74 @@ function makeItem(slot: ArmorItem["slot"], name: string, stats: ArmorStats): Arm
     stats,
     tuning: { kind: "none" },
     power: 0,
-    gearTier: undefined,
+    gearTier: hasTuning ? 5 : undefined,
     isMasterworked: true,
     location: "vault",
   };
+  return { item, stats, hasTuning };
 }
 
-function choice(item: ArmorItem, stats: ArmorStats): SlotChoice {
-  return { item, tuning: { kind: "none" }, stats };
-}
+describe("selectItemCombinations", () => {
+  it("sums stats across one choice per slot and groups by tunedCount", () => {
+    const itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>> = {};
+    for (const slot of ALL_SLOTS) {
+      itemsBySlot[slot] = [makeCandidate(slot, `${slot}-a`, { ...zeroVector(), mobility: 10 })];
+    }
 
-describe("combineSlots", () => {
-  it("sums stats across one choice per slot", () => {
-    const helmet = makeItem("helmet", "Helmet", { ...zeroVector(), mobility: 10 });
-    const gauntlets = makeItem("gauntlets", "Gauntlets", { ...zeroVector(), resilience: 20 });
+    const buckets = selectItemCombinations(itemsBySlot);
 
-    const result = combineSlots([
-      [choice(helmet, helmet.stats)],
-      [choice(gauntlets, gauntlets.stats)],
-    ]);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].stats).toEqual({ ...zeroVector(), mobility: 10, resilience: 20 });
-    expect(result[0].choices.helmet?.item.name).toBe("Helmet");
-    expect(result[0].choices.gauntlets?.item.name).toBe("Gauntlets");
+    expect(buckets).toHaveLength(MAX_TUNED_SLOTS + 1);
+    expect(buckets[0]).toHaveLength(1);
+    expect(buckets[0][0].stats).toEqual({ ...zeroVector(), mobility: 50 });
+    expect(buckets[0][0].tunedCount).toBe(0);
+    for (let k = 1; k <= MAX_TUNED_SLOTS; k++) {
+      expect(buckets[k]).toHaveLength(0);
+    }
   });
 
-  it("prunes dominated combinations after each slot", () => {
-    const helmetA = makeItem("helmet", "Helmet A", { ...zeroVector(), mobility: 10, resilience: 10 });
-    const helmetB = makeItem("helmet", "Helmet B", { ...zeroVector(), mobility: 10, resilience: 5 });
-    const gauntlets = makeItem("gauntlets", "Gauntlets", { ...zeroVector(), recovery: 5 });
+  it("counts tunedCount from items with a tuning socket (hasTuning)", () => {
+    const itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>> = {};
+    for (const slot of ALL_SLOTS) {
+      itemsBySlot[slot] = [makeCandidate(slot, `${slot}-a`, zeroVector(), slot === "helmet" || slot === "chest")];
+    }
 
-    const result = combineSlots([
-      [choice(helmetA, helmetA.stats), choice(helmetB, helmetB.stats)],
-      [choice(gauntlets, gauntlets.stats)],
-    ]);
+    const buckets = selectItemCombinations(itemsBySlot);
 
-    // Helmet B is dominated by Helmet A in every combination, so only one result remains.
-    expect(result).toHaveLength(1);
-    expect(result[0].choices.helmet?.item.name).toBe("Helmet A");
+    expect(buckets[0]).toHaveLength(0);
+    expect(buckets[2]).toHaveLength(1);
+    expect(buckets[2][0].tunedCount).toBe(2);
+  });
+
+  it("prunes dominated combinations within each tunedCount bucket", () => {
+    const itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>> = {
+      helmet: [
+        makeCandidate("helmet", "helmet-a", { ...zeroVector(), mobility: 10, resilience: 10 }),
+        makeCandidate("helmet", "helmet-b", { ...zeroVector(), mobility: 10, resilience: 5 }),
+      ],
+    };
+    for (const slot of ALL_SLOTS) {
+      if (slot === "helmet") continue;
+      itemsBySlot[slot] = [makeCandidate(slot, `${slot}-a`, zeroVector())];
+    }
+
+    const buckets = selectItemCombinations(itemsBySlot);
+
+    // helmet-b is dominated by helmet-a in every combination, so only one survives.
+    expect(buckets[0]).toHaveLength(1);
+    expect(buckets[0][0].choices.helmet?.item.name).toBe("helmet-a");
+  });
+
+  it("returns all-empty buckets if any slot has no candidates", () => {
+    const itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>> = {
+      helmet: [makeCandidate("helmet", "helmet-a", zeroVector())],
+      // other slots intentionally missing
+    };
+
+    const buckets = selectItemCombinations(itemsBySlot);
+
+    expect(buckets).toHaveLength(MAX_TUNED_SLOTS + 1);
+    for (const bucket of buckets) {
+      expect(bucket).toHaveLength(0);
+    }
   });
 });

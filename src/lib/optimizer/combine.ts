@@ -1,46 +1,63 @@
+import { ARMOR_BUCKET_HASHES } from "@/lib/armor/types";
 import type { ArmorItem, ArmorSlot } from "@/lib/armor/types";
-import type { ArmorTuning } from "@/lib/armor/tuning";
-import { addVectors, dedupeByStats, type StatVector } from "./vectors";
+import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
 import { paretoFrontier } from "./pareto";
+import { addVectors, dedupeByStats, zeroVector, type StatVector } from "./vectors";
 
-export interface SlotChoice {
+/** Canonical iteration order for the 5 armor slots. */
+export const ALL_SLOTS = Object.keys(ARMOR_BUCKET_HASHES) as ArmorSlot[];
+
+export interface SlotCandidate {
   item: ArmorItem;
-  tuning: ArmorTuning;
   stats: StatVector;
+  /** True if this item has a Tier 5 tuning socket (`item.gearTier === 5`). */
+  hasTuning: boolean;
 }
 
-export interface LoadoutCandidate {
-  choices: Partial<Record<ArmorSlot, SlotChoice>>;
+export interface ItemCombination {
+  choices: Partial<Record<ArmorSlot, SlotCandidate>>;
   stats: StatVector;
+  /** Number of chosen slots whose item has a tuning socket (0..MAX_TUNED_SLOTS). */
+  tunedCount: number;
 }
 
 /**
- * Combines per-slot candidate variants into loadout candidates (one choice per slot, stats
- * summed), Pareto-pruning the running set after each slot to keep the search tractable.
+ * Cartesian-combines one candidate per slot (from `itemsBySlot`, over `ALL_SLOTS`) into
+ * `ItemCombination`s, grouped by `tunedCount`. After each slot, each `tunedCount` bucket is
+ * Pareto-pruned separately, since different buckets are later crossed with different
+ * tuning-adjustment frontiers and aren't directly comparable.
+ *
+ * Returns an array indexed by `tunedCount` (0..MAX_TUNED_SLOTS). If any slot has no candidates,
+ * every bucket is empty.
  */
-export function combineSlots(slotVariants: SlotChoice[][]): LoadoutCandidate[] {
-  if (slotVariants.length === 0) {
-    return [];
-  }
+export function selectItemCombinations(
+  itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>>
+): ItemCombination[][] {
+  let buckets: ItemCombination[][] = Array.from({ length: MAX_TUNED_SLOTS + 1 }, () => []);
+  buckets[0] = [{ choices: {}, stats: zeroVector(), tunedCount: 0 }];
 
-  let combined: LoadoutCandidate[] = slotVariants[0].map((choice) => ({
-    choices: { [choice.item.slot]: choice },
-    stats: choice.stats,
-  }));
-  combined = paretoFrontier(dedupeByStats(combined));
+  for (const slot of ALL_SLOTS) {
+    const candidates = itemsBySlot[slot];
+    if (!candidates || candidates.length === 0) {
+      return Array.from({ length: MAX_TUNED_SLOTS + 1 }, () => []);
+    }
 
-  for (let i = 1; i < slotVariants.length; i++) {
-    const next: LoadoutCandidate[] = [];
-    for (const acc of combined) {
-      for (const choice of slotVariants[i]) {
-        next.push({
-          choices: { ...acc.choices, [choice.item.slot]: choice },
-          stats: addVectors(acc.stats, choice.stats),
-        });
+    const next: ItemCombination[][] = Array.from({ length: MAX_TUNED_SLOTS + 1 }, () => []);
+    for (const bucket of buckets) {
+      for (const acc of bucket) {
+        for (const candidate of candidates) {
+          const tunedCount = acc.tunedCount + (candidate.hasTuning ? 1 : 0);
+          next[tunedCount].push({
+            choices: { ...acc.choices, [slot]: candidate },
+            stats: addVectors(acc.stats, candidate.stats),
+            tunedCount,
+          });
+        }
       }
     }
-    combined = paretoFrontier(dedupeByStats(next));
+
+    buckets = next.map((combos) => paretoFrontier(dedupeByStats(combos)));
   }
 
-  return combined;
+  return buckets;
 }
