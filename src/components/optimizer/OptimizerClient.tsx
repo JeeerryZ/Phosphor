@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ArmorInventory, ArmorItem, ArmorStatName, ArmorStats } from "@/lib/armor/types";
 import type { OptimizerResult } from "@/lib/optimizer";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import { ExoticPicker } from "./ExoticPicker";
 import { OptimizerControls } from "./OptimizerControls";
 import { OptimizerResults } from "./OptimizerResults";
+
+const QUERY_DEBOUNCE_MS = 300;
 
 function zeroThresholds(): ArmorStats {
   return {
@@ -36,18 +38,19 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const requestIdRef = useRef(0);
 
-  async function handleSelectExotic(item: ArmorItem) {
+  async function runQuery(exotic: ArmorItem, currentThresholds: ArmorStats, currentOptimizeFor: ArmorStatName) {
     const requestId = ++requestIdRef.current;
-    setSelectedExotic(item);
-    setResults([]);
-    setThresholds(zeroThresholds());
     setStatus("loading");
 
     try {
       const response = await fetch("/api/optimizer/compute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exoticItemInstanceId: item.itemInstanceId }),
+        body: JSON.stringify({
+          exoticItemInstanceId: exotic.itemInstanceId,
+          thresholds: currentThresholds,
+          optimizeFor: currentOptimizeFor,
+        }),
       });
 
       if (!response.ok) {
@@ -62,6 +65,24 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
       if (requestIdRef.current !== requestId) return;
       setStatus("error");
     }
+  }
+
+  useEffect(() => {
+    if (!selectedExotic) return;
+
+    const timeout = setTimeout(() => {
+      runQuery(selectedExotic, thresholds, optimizeFor);
+    }, QUERY_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeout);
+  }, [selectedExotic, thresholds, optimizeFor]);
+
+  function handleSelectExotic(item: ArmorItem) {
+    requestIdRef.current += 1;
+    setSelectedExotic(item);
+    setResults([]);
+    setThresholds(zeroThresholds());
+    setOptimizeFor(ARMOR_STAT_ORDER[0]);
   }
 
   return (
@@ -80,23 +101,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
         onSelect={handleSelectExotic}
       />
 
-      {status === "loading" && (
-        <p role="status" aria-live="polite" className="text-sm text-foreground/50">
-          Computing combinations...
-        </p>
-      )}
-      {status === "error" && (
-        <p role="alert" className="text-sm text-red-400">
-          Something went wrong computing results.{" "}
-          {selectedExotic && (
-            <button type="button" onClick={() => handleSelectExotic(selectedExotic)} className="underline">
-              Retry
-            </button>
-          )}
-        </p>
-      )}
-
-      {selectedExotic && status === "idle" && (
+      {selectedExotic && (
         <>
           <OptimizerControls
             thresholds={thresholds}
@@ -105,7 +110,25 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType }: Opti
             onOptimizeForChange={setOptimizeFor}
             statIcons={statIcons}
           />
-          <OptimizerResults results={results} thresholds={thresholds} optimizeFor={optimizeFor} />
+
+          {status === "loading" && (
+            <p role="status" aria-live="polite" className="text-sm text-foreground/50">
+              Computing combinations...
+            </p>
+          )}
+          {status === "error" && (
+            <p role="alert" className="text-sm text-red-400">
+              Something went wrong computing results.{" "}
+              <button
+                type="button"
+                onClick={() => runQuery(selectedExotic, thresholds, optimizeFor)}
+                className="underline"
+              >
+                Retry
+              </button>
+            </p>
+          )}
+          {status === "idle" && <OptimizerResults results={results} optimizeFor={optimizeFor} />}
         </>
       )}
     </div>
