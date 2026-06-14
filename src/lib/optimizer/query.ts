@@ -63,9 +63,17 @@ function sliceTopK(
  * Per-stat tier values (`floor(value / 5)`) are shifted by this offset to stay non-negative
  * (stat sums can dip slightly below zero from directional tuning swaps), then packed into a
  * single integer using this radix - both bounded well above any realistic tier value.
+ *
+ * Per-stat `value = combo.stats[i] + adj.stats[i] + mod[i]` is assumed to stay within
+ * [-150, 450]: `adj.stats[i] ∈ [-25, 25]` and `mod[i] ∈ [0, 50]`, leaving `combo.stats[i]`
+ * generous headroom even though `ARMOR_STAT_MAX = 40` per item over 5 items caps it at 200
+ * (and realistically far lower). That gives `floor(value/5) ∈ [-30, 90]`, so with
+ * `TIER_KEY_OFFSET = 32` the shifted digit lands in [2, 122], comfortably inside the
+ * [0, TIER_KEY_RADIX - 1] = [0, 127] range. `128^6 ≈ 4.4e12`, far below
+ * `Number.MAX_SAFE_INTEGER` (~9e15), so the packed key for 6 stats cannot overflow.
  */
-const TIER_KEY_OFFSET = 16;
-const TIER_KEY_RADIX = 64;
+const TIER_KEY_OFFSET = 32;
+const TIER_KEY_RADIX = 128;
 
 /** Builds the per-slot loadout, assigning each tuned slot's stats/tuning from `tuningAssignment` in slot order. */
 function buildLoadout(
