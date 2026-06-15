@@ -88,3 +88,32 @@ combos than realistic inventories produce (i.e., the deficit-sum filter's recove
 enough to make `ITER_BUDGET` cover their full cross-product at realistic combo counts), that's the
 trigger to design a `worker_threads`-based parallelization of the `buildResults` hot loop as a
 follow-up. Not designed here.
+
+## Phase 1 Results
+
+Measured via `npx vitest run src/lib/optimizer/query.performance.test.ts --root . --reporter=verbose`:
+
+| Test                          | Before | After       |
+|--------------------------------|--------|-------------|
+| loose thresholds (all zero)    | 1834ms | 1323ms |
+| strict thresholds               | 1685ms | 1201ms |
+| tunedCount=4-heavy fixture       | 3020ms | 2567ms |
+
+As predicted, the heavy fixture (all-zero thresholds) saw a modest but real reduction (~15%),
+not the larger reductions seen for the threshold-bearing tests (~28-29%). This matches the
+design's prediction that `deficitSum` essentially never exceeds `MOD_BUDGET=50` when thresholds
+are zero - the filter only fires when a stat is meaningfully below a non-trivial threshold, so the
+heavy fixture still iterates nearly the full 252-entry mod-delta set for every `(combo,
+adjustment)` pair. The smaller-but-nonzero improvement on the heavy fixture is attributable to the
+cheap early-exit check itself plus general run-to-run variance (a second run measured 1284ms /
+979ms / 2139ms, consistent with the same relative ordering).
+
+**`ITER_BUDGET` is not raised in this phase.** The `tunedCount=4`/`tunedCount=5` collapse-to-1-combo
+behavior is unchanged for the loose-threshold case, which is the case `ITER_BUDGET` must stay safe
+for. The deficit-sum filter remains a real win for queries with non-trivial thresholds (the
+realistic case), speeding up each `buildResults` call in `computeOptimizerQuery`'s topK-widening
+retry loop.
+
+**Phase 2 decision:** loosening/removing the cap for `tunedCount=4`/`5` under loose-threshold
+conditions still requires the worker_threads-based parallelization described as "Phase 2" in the
+original design - not addressed by this filter alone.
