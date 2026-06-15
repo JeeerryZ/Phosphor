@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   const candidatesBySlot = buildCandidatesBySlot(inventory, exotic);
-  const results = computeOptimizerQuery(exotic, candidatesBySlot, { thresholds, optimizeFor });
+  const results = await computeOptimizerQuery(exotic, candidatesBySlot, { thresholds, optimizeFor });
 
   return NextResponse.json({ results });
 }
