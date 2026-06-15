@@ -75,6 +75,28 @@ function sliceTopK(
 const TIER_KEY_OFFSET = 32;
 const TIER_KEY_RADIX = 128;
 
+/**
+ * Per-`tunedCount` bucket, the (combo x adjustment x mod) cross-product is capped to roughly this
+ * many iterations by sorting `combos` by total stat sum (descending) and slicing to
+ * `max(1, floor(ITER_BUDGET / (adjustments.length * modDeltaSet.length)))`.
+ *
+ * T5 armor pieces always contribute more total raw stats than lower-tier pieces, so for buckets
+ * where the adjustment+mod frontier is huge (tunedCount 4/5), restricting to the highest-total-
+ * stat combo(s) is correct-enough: the full (uncapped) adjustment+mod frontier still performs the
+ * fine-grained per-stat redistribution on top of those combos. For tunedCount <= 3 this is a
+ * no-op with realistic inventories, since `combos.length * adjustments.length * 252` stays well
+ * under the budget there (the tunedCount=3 case alone is ~5.9M per the performance test).
+ *
+ * Sizing: `adjustments(5).length * 252 ~= 11247 * 252 ~= 2.83M`, which already exceeds most
+ * reasonable budgets - so tunedCount=5 always collapses to its single highest-total-stat combo
+ * (~2.83M iterations on its own). With `ITER_BUDGET = 2_000_000`, tunedCount=4
+ * (`4251 * 252 ~= 1.07M` per combo) also collapses to 1 combo (~1.07M iterations). Combined with
+ * the ~5.9M from tunedCount 0-3, the worst-case total across all 6 buckets is
+ * ~5.9M + 2.83M + 1.07M ~= 9.8M iterations - comfortably under the ~10-15M target and close to
+ * the ~1.5M iterations/sec the existing performance test budgets for.
+ */
+export const ITER_BUDGET = 2_000_000;
+
 /** Builds the per-slot loadout, assigning each tuned slot's stats/tuning from `tuningAssignment` in slot order. */
 function buildLoadout(
   choices: ItemCombination["choices"],
@@ -117,7 +139,7 @@ interface BestEntry {
  * `buildLoadout` is deferred until after tier-dedup and ranking, since it allocates a full
  * per-slot loadout object and only `RESULT_LIMIT` of them are ever needed.
  */
-function buildResults(itemSelectionFrontier: ItemCombination[][], query: OptimizerQuery): OptimizerResult[] {
+export function buildResults(itemSelectionFrontier: ItemCombination[][], query: OptimizerQuery): OptimizerResult[] {
   // Flatten the mod-delta set, thresholds, and `optimizeFor` index to typed arrays/plain numbers
   // once, so the hot (combo, adj, mod) loop below does scalar arithmetic over contiguous numeric
   // memory instead of per-iteration StatVector allocations and property lookups.
@@ -137,10 +159,16 @@ function buildResults(itemSelectionFrontier: ItemCombination[][], query: Optimiz
   const sumValues = new Int32Array(statCount);
 
   for (let tunedCount = 0; tunedCount <= MAX_TUNED_SLOTS; tunedCount++) {
-    const combos = itemSelectionFrontier[tunedCount];
+    let combos = itemSelectionFrontier[tunedCount];
     if (combos.length === 0) continue;
 
     const adjustments = getTuningAdjustmentFrontier(tunedCount);
+    const perComboCost = adjustments.length * modDeltaSet.length;
+
+    if (combos.length * perComboCost > ITER_BUDGET) {
+      const maxCombos = Math.max(1, Math.floor(ITER_BUDGET / perComboCost));
+      combos = [...combos].sort((a, b) => totalStats(b.stats) - totalStats(a.stats)).slice(0, maxCombos);
+    }
 
     for (const combo of combos) {
       for (const adj of adjustments) {

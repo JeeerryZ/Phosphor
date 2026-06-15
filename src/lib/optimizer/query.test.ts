@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
-import { computeOptimizerQuery } from "./query";
+import type { ItemCombination } from "./combine";
+import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
+import { buildResults, computeOptimizerQuery, ITER_BUDGET } from "./query";
 import { zeroVector } from "./vectors";
 
 function makeItem(
@@ -142,5 +144,87 @@ describe("computeOptimizerQuery", () => {
       expect(result.stats.intellect).toBeGreaterThanOrEqual(60);
       expect(result.loadout.legs?.item.name).toMatch(/^legs-intellect-/);
     }
+  });
+});
+
+describe("buildResults: per-tunedCount-bucket combo cap", () => {
+  /** Builds a synthetic combo whose only choice is `helmet`, with `mobility = totalStats`. */
+  function makeCombo(index: number, mobility: number): ItemCombination {
+    const stats = { ...zeroVector(), mobility };
+    const item: ArmorItem = {
+      itemInstanceId: `combo-${index}`,
+      itemHash: 0,
+      name: `combo-${index}`,
+      icon: "",
+      slot: "helmet",
+      tierType: 5,
+      classType: 0,
+      stats,
+      tuning: { kind: "none" },
+      power: 0,
+      gearTier: undefined,
+      isMasterworked: true,
+      location: "vault",
+    };
+    return {
+      choices: { helmet: { item, stats, hasTuning: false } },
+      stats,
+      tunedCount: 3,
+    };
+  }
+
+  function buildFrontier(comboCount: number): ItemCombination[][] {
+    const frontier: ItemCombination[][] = Array.from({ length: MAX_TUNED_SLOTS + 1 }, () => []);
+    // Descending total-stat sums: combo-0 has the highest mobility (and thus the highest total).
+    frontier[3] = Array.from({ length: comboCount }, (_, i) => makeCombo(i, (comboCount - i) * 5));
+    return frontier;
+  }
+
+  it("does not cap small (tunedCount<=3-sized) combo sets", () => {
+    // getTuningAdjustmentFrontier(3) has 1281 entries; 1281 * 252 ~= 322,812 per combo, well
+    // under ITER_BUDGET even for a handful of combos.
+    const frontier = buildFrontier(5);
+    const results = buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
+
+    expect(results.length).toBeGreaterThan(0);
+    // All 5 combos should be eligible (no capping), so the best mobility comes from combo-0.
+    expect(results[0].loadout.helmet?.item.name).toBe("combo-0");
+  });
+
+  it("caps a large combo set to the highest-total-stat combo(s) without throwing", () => {
+    // 100 combos x getTuningAdjustmentFrontier(3) (1281) x 252 mods ~= 32.3M iterations, far
+    // exceeding ITER_BUDGET (2,000,000) - this mirrors the real tunedCount=4/5 blowup
+    // (157 x 4251 x 252 ~= 168M and 153 x 11247 x 252 ~= 433M) at a much smaller scale.
+    const comboCount = 100;
+    const perComboCost = 1281 * 252;
+    expect(comboCount * perComboCost).toBeGreaterThan(ITER_BUDGET);
+
+    const frontier = buildFrontier(comboCount);
+
+    const start = Date.now();
+    const results = buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
+    const elapsed = Date.now() - start;
+
+    expect(results.length).toBeGreaterThan(0);
+
+    // Only the highest-total-stat combo(s) should be considered: maxCombos = floor(ITER_BUDGET /
+    // perComboCost) = floor(2,000,000 / 322,812) = 6, so only combo-0..combo-5 are eligible.
+    const maxCombos = Math.max(1, Math.floor(ITER_BUDGET / perComboCost));
+    expect(maxCombos).toBeLessThan(comboCount);
+
+    const eligibleNames = new Set(Array.from({ length: maxCombos }, (_, i) => `combo-${i}`));
+    for (const result of results) {
+      const name = result.loadout.helmet?.item.name;
+      expect(name).toBeDefined();
+      expect(eligibleNames.has(name as string)).toBe(true);
+    }
+
+    // The best result (optimizing for mobility) should come from combo-0, the highest-total-stat
+    // combo - not from a lower-ranked one.
+    expect(results[0].loadout.helmet?.item.name).toBe("combo-0");
+
+    // Sanity: post-cap cost is ~6 combos x 1281 x 252 ~= 1.9M iterations, so this should run
+    // quickly despite the uncapped size being ~32.3M.
+    expect(elapsed).toBeLessThan(2000);
   });
 });
