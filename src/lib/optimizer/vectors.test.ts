@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addVectors, zeroVector, vectorKey, dedupeByStats } from "./vectors";
+import { addVectors, zeroVector, vectorKey, dedupeByStats, flattenStatVectors, type StatVector } from "./vectors";
 
 describe("zeroVector", () => {
   it("has all six stats at zero", () => {
@@ -48,5 +48,20 @@ describe("dedupeByStats", () => {
       { id: "c", stats: { ...zeroVector(), mobility: 1 } },
     ];
     expect(dedupeByStats(items).map((i) => i.id)).toEqual(["a", "c"]);
+  });
+});
+
+describe("flattenStatVectors", () => {
+  it("flattens an array of stat vectors into a row-major Int32Array using ARMOR_STAT_ORDER", () => {
+    const vectors: StatVector[] = [
+      { mobility: 1, resilience: 2, recovery: 3, discipline: 4, intellect: 5, strength: 6 },
+      { mobility: 10, resilience: 20, recovery: 30, discipline: 40, intellect: 50, strength: 60 },
+    ];
+
+    expect(flattenStatVectors(vectors)).toEqual(Int32Array.from([1, 2, 3, 4, 5, 6, 10, 20, 30, 40, 50, 60]));
+  });
+
+  it("returns an empty Int32Array for an empty input", () => {
+    expect(flattenStatVectors([])).toEqual(new Int32Array(0));
   });
 });
