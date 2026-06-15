@@ -47,6 +47,9 @@ function computeDeficitSum(baseValues: Int32Array, thresholdValues: Int32Array, 
  *
  * This is the per-combo unit of work dispatched to worker threads in Phase 2 - see
  * docs/plans/2026-06-15-optimizer-worker-thread-pool-design.md.
+ *
+ * Array-length invariants: `adjustmentStatsFlat.length === adjustmentCount * statCount`,
+ * `modDeltaFlat.length === modCount * statCount`, and `thresholdValues.length === statCount`.
  */
 export function computeComboResults(
   comboStats: Int32Array,
