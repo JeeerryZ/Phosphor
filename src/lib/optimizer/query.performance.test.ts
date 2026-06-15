@@ -13,19 +13,23 @@ const ITEMS_PER_SLOT = 14;
 const PERFORMANCE_BUDGET_MS = 4000;
 
 // A tunedCount=4-heavy fixture (see `buildHeavyCandidates`/`heavyExotic` below, all 4 non-exotic
-// slots fully tuned) produces combos[4].length = 35 at topK=5 - far more than the `ITER_BUDGET`
-// cap allows uncapped (35 * 4251 * 252 ~= 37.5M). Without the combo cap (Redesign Task 12) this
-// would be in the same blowup regime as the observed real-world crash (157 * 4251 * 252 ~=
-// 168.2M; 153 * 11247 * 252 ~= 433M for tunedCount=5) and either time out or throw
-// `RangeError: Map maximum size exceeded`. With the cap, bucket 4 collapses to its single
-// highest-total-stat combo (~1.07M iterations: 1 * 4251 * 252).
+// slots fully tuned) produces combos[4].length = 35 at topK=5 - far more than the `ITER_BUDGET *
+// poolSize` cap allows uncapped (35 * 4251 * 252 ~= 37.5M). Without the combo cap (Redesign Task
+// 12) this would be in the same blowup regime as the observed real-world crash (157 * 4251 * 252
+// ~= 168.2M; 153 * 11247 * 252 ~= 433M for tunedCount=5) and either time out or throw
+// `RangeError: Map maximum size exceeded`. With the cap, bucket 4 collapses to its
+// `floor(ITER_BUDGET * poolSize / (4251 * 252))` highest-total-stat combos - at `poolSize = 8`,
+// that's `floor(16M / 1.07M) ~= 14` combos, each dispatched as its own pool task (Phase 2).
 //
-// This budget also covers the one-time `getTuningAdjustmentFrontier(4)` build (~1.4s, building
-// and Pareto-pruning ~4251 entries from ~1281 * 32 raw combinations), which is memoized after the
-// first call but not yet warm when this test runs. 6000ms gives headroom over the
-// ~1.4s-build + <1s-compute observed locally (~1.6s total) while still failing fast if the cap
-// regresses.
-const HEAVY_PERFORMANCE_BUDGET_MS = 6000;
+// This budget also covers the one-time `getTuningAdjustmentFrontier(4)` build (~1s, building and
+// Pareto-pruning ~4251 entries from ~1281 * 32 raw combinations), which is memoized after the
+// first call but not yet warm when this test runs. Dispatching ~14 combos x ~1.07M iterations
+// across the pool (warm) measured ~6.9s locally on an 8-thread pool, vs. ~1.6s for the Phase
+// 1 single-combo cap - the higher cost is expected (Phase 2 trades pool dispatch/serialization
+// overhead for ~14x more search coverage in this bucket). 12000ms gives headroom over the ~6.9s +
+// ~1s frontier-build observed locally while still failing fast on a true regression (e.g. the cap
+// not applying at all).
+const HEAVY_PERFORMANCE_BUDGET_MS = 12000;
 
 // Only these non-exotic slots ever have tuned (gearTier === 5) candidates, so tunedCount never
 // exceeds 3 and getTuningAdjustmentFrontier(4|5) is never built.
@@ -90,9 +94,9 @@ function buildHeavyCandidates(): Partial<Record<ArmorSlot, ArmorItem[]>> {
 }
 
 describe("computeOptimizerQuery performance", () => {
-  it("completes within budget with loose thresholds (all zero)", () => {
+  it("completes within budget with loose thresholds (all zero)", async () => {
     const start = Date.now();
-    const results = computeOptimizerQuery(exotic, buildCandidates(), {
+    const results = await computeOptimizerQuery(exotic, buildCandidates(), {
       thresholds: zeroVector(),
       optimizeFor: "mobility",
     });
@@ -100,10 +104,10 @@ describe("computeOptimizerQuery performance", () => {
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it("completes within budget with strict thresholds", () => {
+  it("completes within budget with strict thresholds", async () => {
     const thresholds = { ...zeroVector(), mobility: 30, resilience: 30 };
     const start = Date.now();
-    const results = computeOptimizerQuery(exotic, buildCandidates(), {
+    const results = await computeOptimizerQuery(exotic, buildCandidates(), {
       thresholds,
       optimizeFor: "mobility",
     });
@@ -111,13 +115,20 @@ describe("computeOptimizerQuery performance", () => {
     expect(Array.isArray(results)).toBe(true);
   });
 
-  it("completes within budget for a tunedCount=4-heavy fixture (combo cap regression guard)", () => {
-    const start = Date.now();
-    const results = computeOptimizerQuery(exotic, buildHeavyCandidates(), {
-      thresholds: zeroVector(),
-      optimizeFor: "mobility",
-    });
-    expect(Date.now() - start).toBeLessThan(HEAVY_PERFORMANCE_BUDGET_MS);
-    expect(results.length).toBeGreaterThan(0);
-  });
+  it(
+    "completes within budget for a tunedCount=4-heavy fixture (combo cap regression guard)",
+    async () => {
+      const start = Date.now();
+      const results = await computeOptimizerQuery(exotic, buildHeavyCandidates(), {
+        thresholds: zeroVector(),
+        optimizeFor: "mobility",
+      });
+      expect(Date.now() - start).toBeLessThan(HEAVY_PERFORMANCE_BUDGET_MS);
+      expect(results.length).toBeGreaterThan(0);
+    },
+    // Exceeds vitest's default 5000ms test timeout (separate from HEAVY_PERFORMANCE_BUDGET_MS,
+    // which is the actual regression-guard assertion) - see the budget comment above for why this
+    // test now runs longer under Phase 2's pool dispatch.
+    HEAVY_PERFORMANCE_BUDGET_MS + 5000
+  );
 });

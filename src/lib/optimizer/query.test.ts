@@ -3,8 +3,9 @@ import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import type { ItemCombination } from "./combine";
 import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
-import { buildResults, computeDeficitSum, computeOptimizerQuery, ITER_BUDGET } from "./query";
+import { buildResults, computeOptimizerQuery, ITER_BUDGET } from "./query";
 import { zeroVector } from "./vectors";
+import { getOptimizerPoolSize } from "./worker-pool";
 
 function makeItem(
   slot: ArmorSlot,
@@ -30,7 +31,7 @@ function makeItem(
 }
 
 describe("computeOptimizerQuery", () => {
-  it("locks the exotic into its slot and combines it with the best candidate per slot", () => {
+  it("locks the exotic into its slot and combines it with the best candidate per slot", async () => {
     const exotic = makeItem("helmet", "Exotic Helmet", { ...zeroVector(), mobility: 10 }, { tierType: 6 });
     const candidates: Partial<Record<ArmorSlot, ArmorItem[]>> = {
       gauntlets: [makeItem("gauntlets", "Gauntlets", { ...zeroVector(), resilience: 10 })],
@@ -39,7 +40,7 @@ describe("computeOptimizerQuery", () => {
       classItem: [makeItem("classItem", "Class Item", { ...zeroVector(), intellect: 10 })],
     };
 
-    const results = computeOptimizerQuery(exotic, candidates, {
+    const results = await computeOptimizerQuery(exotic, candidates, {
       thresholds: zeroVector(),
       optimizeFor: "mobility",
     });
@@ -55,13 +56,13 @@ describe("computeOptimizerQuery", () => {
     }
   });
 
-  it("returns an empty array when a non-exotic slot has no candidates", () => {
+  it("returns an empty array when a non-exotic slot has no candidates", async () => {
     const exotic = makeItem("helmet", "Exotic Helmet", zeroVector(), { tierType: 6 });
-    const results = computeOptimizerQuery(exotic, {}, { thresholds: zeroVector(), optimizeFor: "mobility" });
+    const results = await computeOptimizerQuery(exotic, {}, { thresholds: zeroVector(), optimizeFor: "mobility" });
     expect(results).toEqual([]);
   });
 
-  it("filters out combinations that don't meet thresholds", () => {
+  it("filters out combinations that don't meet thresholds", async () => {
     const exotic = makeItem("helmet", "Exotic Helmet", zeroVector(), { tierType: 6 });
     const candidates: Partial<Record<ArmorSlot, ArmorItem[]>> = {
       gauntlets: [makeItem("gauntlets", "Gauntlets", zeroVector())],
@@ -72,12 +73,12 @@ describe("computeOptimizerQuery", () => {
 
     // Every item contributes 0; mods alone can add at most 50 to any single stat.
     const thresholds = { ...zeroVector(), resilience: 60 };
-    const results = computeOptimizerQuery(exotic, candidates, { thresholds, optimizeFor: "mobility" });
+    const results = await computeOptimizerQuery(exotic, candidates, { thresholds, optimizeFor: "mobility" });
 
     expect(results).toEqual([]);
   });
 
-  it("sorts results by optimizeFor descending", () => {
+  it("sorts results by optimizeFor descending", async () => {
     const exotic = makeItem("helmet", "Exotic Helmet", zeroVector(), { tierType: 6 });
     const candidates: Partial<Record<ArmorSlot, ArmorItem[]>> = {
       gauntlets: [makeItem("gauntlets", "Gauntlets", zeroVector())],
@@ -86,7 +87,7 @@ describe("computeOptimizerQuery", () => {
       classItem: [makeItem("classItem", "Class Item", zeroVector())],
     };
 
-    const results = computeOptimizerQuery(exotic, candidates, {
+    const results = await computeOptimizerQuery(exotic, candidates, {
       thresholds: zeroVector(),
       optimizeFor: "strength",
     });
@@ -99,7 +100,7 @@ describe("computeOptimizerQuery", () => {
     expect(results[0].stats.strength).toBe(50);
   });
 
-  it("tier-dedups results: no two results share a tier bucket (floor(value/5) per stat)", () => {
+  it("tier-dedups results: no two results share a tier bucket (floor(value/5) per stat)", async () => {
     const exotic = makeItem("helmet", "Exotic Helmet", zeroVector(), { tierType: 6 });
     const candidates: Partial<Record<ArmorSlot, ArmorItem[]>> = {
       gauntlets: [makeItem("gauntlets", "Gauntlets", zeroVector())],
@@ -108,7 +109,7 @@ describe("computeOptimizerQuery", () => {
       classItem: [makeItem("classItem", "Class Item", zeroVector())],
     };
 
-    const results = computeOptimizerQuery(exotic, candidates, {
+    const results = await computeOptimizerQuery(exotic, candidates, {
       thresholds: zeroVector(),
       optimizeFor: "mobility",
     });
@@ -117,7 +118,7 @@ describe("computeOptimizerQuery", () => {
     expect(new Set(tierKeys).size).toBe(tierKeys.length);
   });
 
-  it("widens topK when strict thresholds eliminate the top-ranked candidates", () => {
+  it("widens topK when strict thresholds eliminate the top-ranked candidates", async () => {
     const exotic = makeItem("helmet", "Exotic Helmet", zeroVector(), { tierType: 6 });
 
     const legsCandidates: ArmorItem[] = [];
@@ -137,7 +138,7 @@ describe("computeOptimizerQuery", () => {
 
     // Top-5 legs items contribute 0 intellect; max achievable via mods alone is 50 (< 60).
     const thresholds = { ...zeroVector(), intellect: 60 };
-    const results = computeOptimizerQuery(exotic, candidates, { thresholds, optimizeFor: "intellect" });
+    const results = await computeOptimizerQuery(exotic, candidates, { thresholds, optimizeFor: "intellect" });
 
     expect(results.length).toBeGreaterThan(0);
     for (const result of results) {
@@ -180,36 +181,37 @@ describe("buildResults: per-tunedCount-bucket combo cap", () => {
     return frontier;
   }
 
-  it("does not cap small (tunedCount<=3-sized) combo sets", () => {
+  it("does not cap small (tunedCount<=3-sized) combo sets", async () => {
     // getTuningAdjustmentFrontier(3) has 1281 entries; 1281 * 252 ~= 322,812 per combo, well
     // under ITER_BUDGET even for a handful of combos.
     const frontier = buildFrontier(5);
-    const results = buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
+    const results = await buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
 
     expect(results.length).toBeGreaterThan(0);
     // All 5 combos should be eligible (no capping), so the best mobility comes from combo-0.
     expect(results[0].loadout.helmet?.item.name).toBe("combo-0");
   });
 
-  it("caps a large combo set to the highest-total-stat combo(s) without throwing", () => {
+  it("caps a large combo set to the highest-total-stat combo(s) without throwing", async () => {
     // 100 combos x getTuningAdjustmentFrontier(3) (1281) x 252 mods ~= 32.3M iterations, far
-    // exceeding ITER_BUDGET (2,000,000) - this mirrors the real tunedCount=4/5 blowup
+    // exceeding ITER_BUDGET * poolSize - this mirrors the real tunedCount=4/5 blowup
     // (157 x 4251 x 252 ~= 168M and 153 x 11247 x 252 ~= 433M) at a much smaller scale.
     const comboCount = 100;
     const perComboCost = 1281 * 252;
-    expect(comboCount * perComboCost).toBeGreaterThan(ITER_BUDGET);
+    const poolSize = getOptimizerPoolSize();
+    expect(comboCount * perComboCost).toBeGreaterThan(ITER_BUDGET * poolSize);
 
     const frontier = buildFrontier(comboCount);
 
     const start = Date.now();
-    const results = buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
+    const results = await buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
     const elapsed = Date.now() - start;
 
     expect(results.length).toBeGreaterThan(0);
 
-    // Only the highest-total-stat combo(s) should be considered: maxCombos = floor(ITER_BUDGET /
-    // perComboCost) = floor(2,000,000 / 322,812) = 6, so only combo-0..combo-5 are eligible.
-    const maxCombos = Math.max(1, Math.floor(ITER_BUDGET / perComboCost));
+    // Only the highest-total-stat combo(s) should be considered: maxCombos = floor(ITER_BUDGET *
+    // poolSize / perComboCost).
+    const maxCombos = Math.max(1, Math.floor((ITER_BUDGET * poolSize) / perComboCost));
     expect(maxCombos).toBeLessThan(comboCount);
 
     const eligibleNames = new Set(Array.from({ length: maxCombos }, (_, i) => `combo-${i}`));
@@ -223,9 +225,19 @@ describe("buildResults: per-tunedCount-bucket combo cap", () => {
     // combo - not from a lower-ranked one.
     expect(results[0].loadout.helmet?.item.name).toBe("combo-0");
 
-    // Sanity: post-cap cost is ~6 combos x 1281 x 252 ~= 1.9M iterations, so this should run
+    // Sanity: post-cap cost is ~maxCombos combos x 1281 x 252 iterations, so this should run
     // quickly despite the uncapped size being ~32.3M.
     expect(elapsed).toBeLessThan(2000);
+  });
+
+  it("produces deterministic results across repeated runs (pool dispatch doesn't introduce nondeterminism)", async () => {
+    const frontier = buildFrontier(5);
+
+    const first = await buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
+    const second = await buildResults(frontier, { thresholds: zeroVector(), optimizeFor: "mobility" });
+
+    expect(first.map((r) => r.stats)).toEqual(second.map((r) => r.stats));
+    expect(first.map((r) => r.loadout.helmet?.item.name)).toEqual(second.map((r) => r.loadout.helmet?.item.name));
   });
 });
 
@@ -252,7 +264,7 @@ describe("buildResults: deficit-sum mod filter", () => {
     return frontier;
   }
 
-  it("excludes a combo whose deficit sum exceeds MOD_BUDGET (every stat short by 10, sum 60 > 50)", () => {
+  it("excludes a combo whose deficit sum exceeds MOD_BUDGET (every stat short by 10, sum 60 > 50)", async () => {
     const thresholds: ArmorStats = {
       mobility: 10,
       resilience: 10,
@@ -261,11 +273,11 @@ describe("buildResults: deficit-sum mod filter", () => {
       intellect: 10,
       strength: 10,
     };
-    const results = buildResults(frontierWithCombo(zeroVector()), { thresholds, optimizeFor: "mobility" });
+    const results = await buildResults(frontierWithCombo(zeroVector()), { thresholds, optimizeFor: "mobility" });
     expect(results).toEqual([]);
   });
 
-  it("still excludes a combo whose deficit sum is within MOD_BUDGET but no single mod covers every stat (6 stats short by 1, only 5 mod slots)", () => {
+  it("still excludes a combo whose deficit sum is within MOD_BUDGET but no single mod covers every stat (6 stats short by 1, only 5 mod slots)", async () => {
     const combo: ArmorStats = {
       mobility: 9,
       resilience: 9,
@@ -282,22 +294,7 @@ describe("buildResults: deficit-sum mod filter", () => {
       intellect: 10,
       strength: 10,
     };
-    const results = buildResults(frontierWithCombo(combo), { thresholds, optimizeFor: "mobility" });
+    const results = await buildResults(frontierWithCombo(combo), { thresholds, optimizeFor: "mobility" });
     expect(results).toEqual([]);
-  });
-});
-
-describe("computeDeficitSum", () => {
-  it("sums positive shortfalls and ignores stats already at/above threshold", () => {
-    const baseValues = Int32Array.from([5, 20, -3, 0, 10, 8]);
-    const thresholdValues = Int32Array.from([10, 15, 0, 0, 10, 20]);
-    // shortfalls: 5, 0 (20>=15), 3, 0, 0, 12 => sum = 20
-    expect(computeDeficitSum(baseValues, thresholdValues, 6)).toBe(20);
-  });
-
-  it("returns 0 when every stat already meets its threshold", () => {
-    const baseValues = Int32Array.from([10, 10, 10, 10, 10, 10]);
-    const thresholdValues = Int32Array.from([10, 10, 10, 10, 10, 10]);
-    expect(computeDeficitSum(baseValues, thresholdValues, 6)).toBe(0);
   });
 });
