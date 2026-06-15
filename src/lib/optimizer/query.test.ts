@@ -3,7 +3,7 @@ import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import type { ItemCombination } from "./combine";
 import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
-import { buildResults, computeOptimizerQuery, ITER_BUDGET } from "./query";
+import { buildResults, computeDeficitSum, computeOptimizerQuery, ITER_BUDGET } from "./query";
 import { zeroVector } from "./vectors";
 
 function makeItem(
@@ -226,5 +226,20 @@ describe("buildResults: per-tunedCount-bucket combo cap", () => {
     // Sanity: post-cap cost is ~6 combos x 1281 x 252 ~= 1.9M iterations, so this should run
     // quickly despite the uncapped size being ~32.3M.
     expect(elapsed).toBeLessThan(2000);
+  });
+});
+
+describe("computeDeficitSum", () => {
+  it("sums positive shortfalls and ignores stats already at/above threshold", () => {
+    const baseValues = Int32Array.from([5, 20, -3, 0, 10, 8]);
+    const thresholdValues = Int32Array.from([10, 15, 0, 0, 10, 20]);
+    // shortfalls: 5, 0 (20>=15), 3, 0, 0, 12 => sum = 20
+    expect(computeDeficitSum(baseValues, thresholdValues, 6)).toBe(20);
+  });
+
+  it("returns 0 when every stat already meets its threshold", () => {
+    const baseValues = Int32Array.from([10, 10, 10, 10, 10, 10]);
+    const thresholdValues = Int32Array.from([10, 10, 10, 10, 10, 10]);
+    expect(computeDeficitSum(baseValues, thresholdValues, 6)).toBe(0);
   });
 });

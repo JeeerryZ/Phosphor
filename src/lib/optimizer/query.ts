@@ -124,6 +124,21 @@ function buildLoadout(
   return loadout;
 }
 
+/**
+ * Sum of per-stat shortfalls (`threshold - value`, floored at 0) across the first `statCount`
+ * entries. If this exceeds `MOD_BUDGET`, no mod-delta vector (each summing to exactly
+ * `MOD_BUDGET` across its stats) can cover every stat's shortfall simultaneously - see
+ * docs/plans/2026-06-15-deficit-sum-mod-filter-design.md.
+ */
+export function computeDeficitSum(baseValues: Int32Array, thresholdValues: Int32Array, statCount: number): number {
+  let deficitSum = 0;
+  for (let i = 0; i < statCount; i++) {
+    const deficit = thresholdValues[i] - baseValues[i];
+    if (deficit > 0) deficitSum += deficit;
+  }
+  return deficitSum;
+}
+
 /** A candidate winner for a tier-dedup bucket: enough to rebuild the full `OptimizerResult` later. */
 interface BestEntry {
   stats: StatVector;
