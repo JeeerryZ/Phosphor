@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getModDeltaSet } from "./mod-deltas";
+import { getModDeltaSet, MOD_BUDGET } from "./mod-deltas";
 import { dominates } from "./pareto";
 import { vectorKey, type StatVector } from "./vectors";
 
@@ -30,6 +30,14 @@ describe("getModDeltaSet", () => {
       for (const value of Object.values(delta)) {
         expect(value % 10).toBe(0);
       }
+    }
+  });
+
+  it("MOD_BUDGET (50) equals the total of every mod-delta entry", () => {
+    expect(MOD_BUDGET).toBe(50);
+    for (const delta of getModDeltaSet()) {
+      const total = Object.values(delta).reduce((sum, value) => sum + value, 0);
+      expect(total).toBe(MOD_BUDGET);
     }
   });
 

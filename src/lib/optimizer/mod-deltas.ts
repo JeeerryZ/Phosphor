@@ -5,6 +5,13 @@ const MOD_SLOTS_PER_LOADOUT = 5;
 const MOD_BONUS = 10;
 
 /**
+ * Maximum total stat points mods can contribute across all stats combined: each of the
+ * `MOD_SLOTS_PER_LOADOUT` general mod slots adds at most `MOD_BONUS` to one stat. Every entry in
+ * `getModDeltaSet()` sums to exactly this value.
+ */
+export const MOD_BUDGET = MOD_SLOTS_PER_LOADOUT * MOD_BONUS;
+
+/**
  * All ways to distribute `slots` indistinguishable tokens across `statCount` stats, as arrays of
  * per-stat counts summing to `slots` (combinations with repetition).
  */
