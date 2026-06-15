@@ -209,8 +209,9 @@ stayed within the 12000ms budget (~1.5x headroom on the slower runs).
 `maxCombos = floor(ITER_BUDGET * poolSize / perComboCost) = floor(2_000_000 * 8 / (4251 * 252)) =
 floor(16,000,000 / 1,071,252) = 14`. In the heavy fixture (`combos[4].length = 35`), all 35
 available combos exceed the cap of 14, so the 14 highest-total-stat combos are dispatched as
-separate pool tasks (verified directly via `tasks.length === 14` and 14 distinct item combinations
-appearing in the internal `best` tier-bucket map during manual instrumentation). The final ranked
+separate pool tasks (observed via one-off manual instrumentation during this task - `tasks.length
+=== 14` and 14 distinct item combinations appearing in the internal `best` tier-bucket map; this
+instrumentation was removed and is not part of the committed test). The final ranked
 `results` returned to the caller still draw from a single combo for this fixture's
 `optimizeFor: "mobility"` - one combo's stat profile dominates every reachable tier bucket at the
 top of the mobility ranking, so the extra 13 combos don't change *this particular* ranking, though
@@ -221,8 +222,10 @@ same exported `getOptimizerPoolSize`/`getTuningAdjustmentFrontier`/`getModDeltaS
 pieces `buildResults` uses) rather than on `results`, since `results` isn't a reliable signal for
 this fixture.
 
-**Outcome vs. the Phase 1 decision gate:** Phase 1 measured real-world inventories producing
-`combos[4].length ~= 157` and `combos[5].length ~= 153`. At `poolSize=8`, `tunedCount=4`'s cap rose
+**Outcome vs. the Phase 1 decision gate:** the real-world inventory crash that motivated the
+combo-cap fix (see `query.test.ts`'s and `query.performance.test.ts`'s comments referencing commit
+`1fc5639`) produced `combos[4].length ~= 157` and `combos[5].length ~= 153`. At `poolSize=8`,
+`tunedCount=4`'s cap rose
 from 1 to 14 (157 / 14 ~= 11.2x fewer combos than the realistic count) and `tunedCount=5`'s cap rose
 from 1 to `floor(16M / 2.83M) = 5` (153 / 5 ~= 30.6x fewer). Both buckets still collapse to a small
 fraction of the realistic combo set - `tunedCount=4/5` remain far from "uncapped" - but the
