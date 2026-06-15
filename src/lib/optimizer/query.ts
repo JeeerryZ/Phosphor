@@ -3,7 +3,7 @@ import type { ArmorTuning } from "@/lib/armor/tuning";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import { getTuningAdjustmentFrontier, MAX_TUNED_SLOTS, type TuningAdjustment } from "./adjustment-frontier";
 import { ALL_SLOTS, selectItemCombinations, type ItemCombination, type SlotCandidate } from "./combine";
-import { getModDeltaSet } from "./mod-deltas";
+import { getModDeltaSet, MOD_BUDGET } from "./mod-deltas";
 import { tuningDeltaVector } from "./tuning-variants";
 import { addVectors, zeroVector, type StatVector } from "./vectors";
 
@@ -191,6 +191,10 @@ export function buildResults(itemSelectionFrontier: ItemCombination[][], query: 
         // of the 252 mod deltas only does one addition per stat instead of two.
         for (let i = 0; i < statCount; i++) {
           baseValues[i] = combo.stats[ARMOR_STAT_ORDER[i]] + adj.stats[ARMOR_STAT_ORDER[i]];
+        }
+
+        if (computeDeficitSum(baseValues, thresholdValues, statCount) > MOD_BUDGET) {
+          continue;
         }
 
         for (let modIndex = 0; modIndex < modDeltaSet.length; modIndex++) {

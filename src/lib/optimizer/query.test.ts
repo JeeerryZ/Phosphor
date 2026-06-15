@@ -229,6 +229,64 @@ describe("buildResults: per-tunedCount-bucket combo cap", () => {
   });
 });
 
+describe("buildResults: deficit-sum mod filter", () => {
+  /** Builds a tunedCount=0 combo (no tuning adjustment to account for) with the given stats. */
+  function frontierWithCombo(stats: ArmorStats): ItemCombination[][] {
+    const item: ArmorItem = {
+      itemInstanceId: "combo",
+      itemHash: 0,
+      name: "combo",
+      icon: "",
+      slot: "helmet",
+      tierType: 5,
+      classType: 0,
+      stats,
+      tuning: { kind: "none" },
+      power: 0,
+      gearTier: undefined,
+      isMasterworked: true,
+      location: "vault",
+    };
+    const frontier: ItemCombination[][] = Array.from({ length: MAX_TUNED_SLOTS + 1 }, () => []);
+    frontier[0] = [{ choices: { helmet: { item, stats, hasTuning: false } }, stats, tunedCount: 0 }];
+    return frontier;
+  }
+
+  it("excludes a combo whose deficit sum exceeds MOD_BUDGET (every stat short by 10, sum 60 > 50)", () => {
+    const thresholds: ArmorStats = {
+      mobility: 10,
+      resilience: 10,
+      recovery: 10,
+      discipline: 10,
+      intellect: 10,
+      strength: 10,
+    };
+    const results = buildResults(frontierWithCombo(zeroVector()), { thresholds, optimizeFor: "mobility" });
+    expect(results).toEqual([]);
+  });
+
+  it("still excludes a combo whose deficit sum is within MOD_BUDGET but no single mod covers every stat (6 stats short by 1, only 5 mod slots)", () => {
+    const combo: ArmorStats = {
+      mobility: 9,
+      resilience: 9,
+      recovery: 9,
+      discipline: 9,
+      intellect: 9,
+      strength: 9,
+    };
+    const thresholds: ArmorStats = {
+      mobility: 10,
+      resilience: 10,
+      recovery: 10,
+      discipline: 10,
+      intellect: 10,
+      strength: 10,
+    };
+    const results = buildResults(frontierWithCombo(combo), { thresholds, optimizeFor: "mobility" });
+    expect(results).toEqual([]);
+  });
+});
+
 describe("computeDeficitSum", () => {
   it("sums positive shortfalls and ignores stats already at/above threshold", () => {
     const baseValues = Int32Array.from([5, 20, -3, 0, 10, 8]);
