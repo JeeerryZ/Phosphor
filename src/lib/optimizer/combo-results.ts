@@ -26,10 +26,8 @@ export interface ComboResultEntry {
  * `MOD_BUDGET` across its stats) can cover every stat's shortfall simultaneously - see
  * docs/plans/2026-06-15-deficit-sum-mod-filter-design.md.
  *
- * This is a local copy of `query.ts`'s `computeDeficitSum`, kept separate so this module has no
- * dependency on `query.ts` - see Task 4 of
- * docs/plans/2026-06-15-optimizer-worker-thread-pool-implementation.md for the planned
- * reconciliation.
+ * Kept local to `combo-results.ts` so that module (and its manually-synced copy in
+ * `optimizer-worker.js`) has no dependency on `query.ts`.
  */
 function computeDeficitSum(baseValues: Int32Array, thresholdValues: Int32Array, statCount: number): number {
   let deficitSum = 0;

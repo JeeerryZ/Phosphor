@@ -10,10 +10,11 @@ import { zeroVector } from "./vectors";
 const ITEMS_PER_SLOT = 14;
 
 // The tunedCount=3 cross-product (~5.9M iterations: frontier(3)=1281 entries x 252 mod-deltas x
-// ~15 combos) costs ~2.5-3.5s even after the query.ts hot-loop optimization. 4000ms gives
-// headroom for CI variance while still guarding strongly against a regression back to the
-// original ~20s+ blowup.
-const PERFORMANCE_BUDGET_MS = 4000;
+// ~15 combos) measured ~1.1-1.3s in Phase 1 (single-thread). Phase 2 routes every task through
+// the worker pool, adding per-task dispatch/serialization overhead that raises the loose/strict
+// fixture wall-clock to ~3.5-4.5s. 8000ms gives headroom for CI variance while still guarding
+// strongly against a regression back to the original ~20s+ blowup.
+const PERFORMANCE_BUDGET_MS = 8000;
 
 // A tunedCount=4-heavy fixture (see `buildHeavyCandidates`/`heavyExotic` below, all 4 non-exotic
 // slots fully tuned) produces combos[4].length = 35 at topK=5 - far more than the `ITER_BUDGET *

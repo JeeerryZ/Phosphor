@@ -14,8 +14,9 @@
 // `combo-results.ts`, port the same change here, and that test will fail if the copies diverge.
 
 /**
- * Maximum total stat points mods can contribute across all stats combined - see
- * `src/lib/optimizer/mod-deltas.ts` (`MOD_BUDGET`).
+ * Maximum total stat points mods can contribute across all stats combined.
+ * SYNC: must equal `MOD_BUDGET` exported from `src/lib/optimizer/mod-deltas.ts`.
+ * Update here whenever that constant changes.
  */
 const MOD_BUDGET = 50;
 
