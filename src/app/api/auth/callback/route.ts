@@ -40,5 +40,5 @@ export async function GET(request: NextRequest) {
   session.membershipType = membershipType;
   await session.save();
 
-  return NextResponse.redirect(new URL("/inventory", appUrl));
+  return NextResponse.redirect(new URL("/", appUrl));
 }

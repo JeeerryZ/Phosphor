@@ -9,7 +9,7 @@ import type { SessionData } from "@/lib/session/types";
  * Refreshes the Bungie access token (if it's about to expire) before page
  * requests reach Server Components, where `cookies().set()` is disallowed.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
   const session = await getIronSession<Partial<SessionData>>(request, response, sessionOptions);
 

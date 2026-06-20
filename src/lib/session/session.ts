@@ -23,9 +23,11 @@ export async function getSession(): Promise<IronSession<Partial<SessionData>>> {
 }
 
 /**
- * Returns a session with a guaranteed-valid access token, refreshing it
- * (and persisting the refreshed tokens) if it's about to expire. Returns
- * null if there's no session or the refresh token has expired.
+ * Returns the session if a valid (non-expired) access token exists.
+ * Safe to call from Server Components — does NOT write cookies.
+ * Returns null if no session, refresh token has expired, or the access
+ * token is within REFRESH_BUFFER_MS of expiring (caller should redirect
+ * to /api/auth/refresh to get a fresh token before proceeding).
  */
 export async function getValidSession(): Promise<IronSession<SessionData> | null> {
   const session = await getSession();
@@ -37,18 +39,41 @@ export async function getValidSession(): Promise<IronSession<SessionData> | null
   const data = session as IronSession<SessionData>;
 
   if (data.refreshTokenExpiresAt <= Date.now()) {
-    session.destroy();
     return null;
   }
 
   if (data.accessTokenExpiresAt - Date.now() <= REFRESH_BUFFER_MS) {
-    const refreshed = await refreshAccessToken(data.refreshToken);
-    data.accessToken = refreshed.accessToken;
-    data.refreshToken = refreshed.refreshToken;
-    data.accessTokenExpiresAt = refreshed.accessTokenExpiresAt;
-    data.refreshTokenExpiresAt = refreshed.refreshTokenExpiresAt;
-    await data.save();
+    return null; // signal to caller to redirect to /api/auth/refresh
   }
+
+  return data;
+}
+
+/**
+ * Refreshes the access token and saves the updated session. Must only be
+ * called from a Route Handler or Server Action (Next.js cookie write restriction).
+ * Returns the updated session, or null if the refresh token has expired.
+ */
+export async function refreshAndSaveSession(): Promise<IronSession<SessionData> | null> {
+  const session = await getSession();
+
+  if (!session.accessToken || !session.refreshToken) {
+    return null;
+  }
+
+  const data = session as IronSession<SessionData>;
+
+  if (data.refreshTokenExpiresAt <= Date.now()) {
+    await session.destroy();
+    return null;
+  }
+
+  const refreshed = await refreshAccessToken(data.refreshToken);
+  data.accessToken = refreshed.accessToken;
+  data.refreshToken = refreshed.refreshToken;
+  data.accessTokenExpiresAt = refreshed.accessTokenExpiresAt;
+  data.refreshTokenExpiresAt = refreshed.refreshTokenExpiresAt;
+  await data.save();
 
   return data;
 }
