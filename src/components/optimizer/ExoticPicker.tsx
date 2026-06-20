@@ -5,7 +5,8 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils/cn";
 import type { ArmorItem } from "@/lib/armor/types";
-import { CLASS_TYPE_LABELS, ARMOR_SLOT_LABELS, ARMOR_STAT_ORDER } from "@/styles/theme";
+import { groupExoticVariants } from "@/lib/armor/exotic-grouping";
+import { CLASS_TYPE_LABELS, ARMOR_SLOT_LABELS } from "@/styles/theme";
 import type { SavedBuild } from "@/lib/builds/storage";
 
 const TIER_EXOTIC = 6;
@@ -37,17 +38,11 @@ export function ExoticPicker({
   const [search, setSearch] = useState("");
   const [savesOpen, setSavesOpen] = useState(true);
 
-  const statTotal = (item: ArmorItem) =>
-    ARMOR_STAT_ORDER.reduce((s, stat) => s + item.stats[stat], 0);
+  const classExotics = items.filter(
+    (item) => item.tierType === TIER_EXOTIC && item.classType === selectedClassType
+  );
 
-  const exoticsByHash = new Map<number, ArmorItem>();
-  for (const item of items) {
-    if (item.tierType !== TIER_EXOTIC || item.classType !== selectedClassType) continue;
-    const existing = exoticsByHash.get(item.itemHash);
-    if (!existing || statTotal(item) > statTotal(existing)) exoticsByHash.set(item.itemHash, item);
-  }
-
-  const exotics = [...exoticsByHash.values()]
+  const exotics = groupExoticVariants(classExotics)
     .sort((a, b) => a.name.localeCompare(b.name))
     .filter((item) => !search || item.name.toLowerCase().includes(search.toLowerCase()));
 
