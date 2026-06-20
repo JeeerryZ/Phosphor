@@ -9,5 +9,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Nested git worktrees (.worktrees/, .claude/worktrees/) live inside this directory
+    // tree and would otherwise be swept into the default test glob, running every other
+    // worktree's tests in parallel with this one (resource contention, bogus timing failures).
+    exclude: ["**/node_modules/**", "**/.worktrees/**", "**/.claude/**"],
   },
 });
