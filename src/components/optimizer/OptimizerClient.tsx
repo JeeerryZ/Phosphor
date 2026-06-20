@@ -69,6 +69,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
   const [saveMode, setSaveMode] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveDone, setSaveDone] = useState(false);
+  const [importFragmentsState, setImportFragmentsState] = useState<"idle" | "loading" | "error">("idle");
   const requestIdRef = useRef(0);
   const phaseEnteredRef = useRef(false);
   const urlRestoredRef = useRef(false);
@@ -232,6 +233,21 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
     setSaveDone(true);
     setTimeout(() => setSaveDone(false), 2000);
   }, [saveName, selectedExotic, classType, thresholds, fragmentBonuses]);
+
+  const handleImportFragments = useCallback(async () => {
+    if (!activeCharacterId) return;
+    setImportFragmentsState("loading");
+    try {
+      const response = await fetch(`/api/loadout/fragments?characterId=${activeCharacterId}`);
+      if (!response.ok) throw new Error("Import failed");
+      const data = (await response.json()) as { stats: ArmorStats };
+      setFragmentBonuses(data.stats);
+      setImportFragmentsState("idle");
+    } catch {
+      setImportFragmentsState("error");
+      setTimeout(() => setImportFragmentsState("idle"), 3000);
+    }
+  }, [activeCharacterId]);
 
   const handleLoadBuild = useCallback((build: SavedBuild) => {
     requestIdRef.current += 1;
@@ -554,6 +570,8 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
                   }
                   lockedItems={lockedItems}
                   onUnlockSlot={handleUnlockSlot}
+                  onImportFragments={handleImportFragments}
+                  importFragmentsState={importFragmentsState}
                 />
               </div>
 
