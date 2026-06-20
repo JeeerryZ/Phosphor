@@ -3,7 +3,7 @@ import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import type { ItemCombination } from "./combine";
 import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
-import { buildResults, computeOptimizerQuery } from "./query";
+import { buildResults, computeOptimizerQuery, enumerateBoostCombinations } from "./query";
 import { zeroVector } from "./vectors";
 
 function makeItem(
@@ -157,6 +157,24 @@ describe("computeOptimizerQuery", () => {
     for (const result of results) {
       expect(result.freeSlots).toBe(2); // 5 - 3 committed
     }
+  });
+});
+
+describe("enumerateBoostCombinations", () => {
+  it("yields the Cartesian product across asymmetric per-slot domains", () => {
+    const results = [...enumerateBoostCombinations([["discipline"], ["mobility", "resilience"]])];
+    expect(results).toEqual([
+      ["discipline", "mobility"],
+      ["discipline", "resilience"],
+    ]);
+  });
+
+  it("yields a single empty tuple when there are no tuned slots", () => {
+    expect([...enumerateBoostCombinations([])]).toEqual([[]]);
+  });
+
+  it("yields nothing if any slot's domain is empty", () => {
+    expect([...enumerateBoostCombinations([["discipline"], []])]).toEqual([]);
   });
 });
 

@@ -32,17 +32,21 @@ const MOD_SLOTS = 5;
 const MOD_VALUE = 10;
 
 /**
- * Enumerates all multisets of size `k` drawn from `ARMOR_STAT_ORDER` (combinations with
- * repetition). The space is C(k + 5, 5): at most 252 for k=5, 126 for k=4 — no Pareto needed.
+ * Per-slot Cartesian product: yields every combination of one stat per domain in `domains`,
+ * in order. Replaces the old "multiset of any 6 stats" enumeration now that each tuned
+ * slot has its own allowed-stat domain (a single fixed stat for legendary items, all 6 for
+ * exotics) -- domains are no longer interchangeable, so multiset enumeration would silently
+ * drop or misassign stats relative to which physical item occupies which slot.
  */
-function* enumerateBoostDistributions(k: number, startIndex = 0): Generator<ArmorStatName[]> {
-  if (k === 0) {
+export function* enumerateBoostCombinations(domains: ArmorStatName[][]): Generator<ArmorStatName[]> {
+  if (domains.length === 0) {
     yield [];
     return;
   }
-  for (let i = startIndex; i < ARMOR_STAT_ORDER.length; i++) {
-    for (const rest of enumerateBoostDistributions(k - 1, i)) {
-      yield [ARMOR_STAT_ORDER[i], ...rest];
+  const [first, ...rest] = domains;
+  for (const stat of first) {
+    for (const tail of enumerateBoostCombinations(rest)) {
+      yield [stat, ...tail];
     }
   }
 }
@@ -166,7 +170,10 @@ export async function buildResults(
     combosEvaluated += combos.length;
 
     for (const combo of combos) {
-      for (const boosts of enumerateBoostDistributions(tunedCount)) {
+      const tunedSlots = ALL_SLOTS.filter((slot) => combo.choices[slot]?.hasTuning);
+      const domains = tunedSlots.map((slot) => combo.choices[slot]!.allowedIncreaseStats);
+
+      for (const boosts of enumerateBoostCombinations(domains)) {
         boostDistributionsChecked++;
         // Apply all boosts from T5 slots.
         const state: StatVector = { ...combo.stats };
