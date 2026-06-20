@@ -197,7 +197,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
       if (requestIdRef.current !== requestId) return;
       setResults(data.results);
       setDebugInfo(data.debug);
-      setAbsoluteMaxStats((prev) => prev ?? (data.perStatMax as Record<ArmorStatName, number>));
+      setAbsoluteMaxStats(data.perStatMax as Record<ArmorStatName, number>);
       setStatus("idle");
     } catch (err) {
       clearTimeout(timeoutId);

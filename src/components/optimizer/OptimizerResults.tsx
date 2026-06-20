@@ -267,22 +267,24 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                               </p>
                               <p
                                 className={cn(
-                                  "line-clamp-2 text-[12px] leading-tight",
+                                  "line-clamp-2 min-h-[30px] text-[12px] leading-tight",
                                   isExotic ? "text-warn" : "text-fg-dim"
                                 )}
                                 style={{ fontFamily: "var(--font-sans)" }}
                               >
                                 {choice.item.name}
                               </p>
-                              {choice.tuning.kind === "directional" && (
-                                <p className="text-[11px] leading-snug" style={{ color: "var(--color-accent)" }}>
-                                  +{ARMOR_STAT_SHORT[choice.tuning.increasedStat]}
-                                  {" / "}
-                                  <span className="text-fg-muted">
-                                    -{ARMOR_STAT_SHORT[choice.tuning.decreasedStat]}
-                                  </span>
-                                </p>
-                              )}
+                              <p className="h-4 text-[11px] leading-snug" style={{ color: "var(--color-accent)" }}>
+                                {choice.tuning.kind === "directional" && (
+                                  <>
+                                    +{ARMOR_STAT_SHORT[choice.tuning.increasedStat]}
+                                    {" / "}
+                                    <span className="text-fg-muted">
+                                      -{ARMOR_STAT_SHORT[choice.tuning.decreasedStat]}
+                                    </span>
+                                  </>
+                                )}
+                              </p>
                               {/* Per-piece stats */}
                               <div className="grid grid-cols-3 gap-x-1.5 gap-y-0.5 w-full">
                                 {ARMOR_STAT_ORDER.map((stat) => (
