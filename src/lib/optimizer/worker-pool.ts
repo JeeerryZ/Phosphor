@@ -34,11 +34,32 @@ export interface ComboTaskInput {
   modDeltaFlat: Int32Array;
   modCount: number;
   thresholdValues: Int32Array;
-  optimizeForIndex: number;
   statCount: number;
 }
 
 /** Runs one combo's `(adjustment x mod)` search on the worker pool. */
 export function runComboTask(input: ComboTaskInput): Promise<ComboResultEntry[]> {
   return getOptimizerPool().run(input);
+}
+
+export interface OptimizerPoolStats {
+  maxThreads: number;
+  liveThreads: number;
+  idleThreads: number;
+  queueSize: number;
+  completed: number;
+  utilization: number;
+}
+
+/** Snapshot of the pool's current runtime metrics. */
+export function getOptimizerPoolStats(): OptimizerPoolStats {
+  const p = getOptimizerPool();
+  return {
+    maxThreads: p.maxThreads,
+    liveThreads: p.threads.length,
+    idleThreads: p.idleThreads,
+    queueSize: p.queueSize,
+    completed: p.completed,
+    utilization: p.utilization,
+  };
 }

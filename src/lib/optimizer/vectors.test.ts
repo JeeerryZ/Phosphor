@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import { addVectors, zeroVector, vectorKey, dedupeByStats, flattenStatVectors, type StatVector } from "./vectors";
 
 describe("zeroVector", () => {
@@ -58,7 +59,8 @@ describe("flattenStatVectors", () => {
       { mobility: 10, resilience: 20, recovery: 30, discipline: 40, intellect: 50, strength: 60 },
     ];
 
-    expect(flattenStatVectors(vectors)).toEqual(Int32Array.from([1, 2, 3, 4, 5, 6, 10, 20, 30, 40, 50, 60]));
+    const expected = Int32Array.from(vectors.flatMap((v) => ARMOR_STAT_ORDER.map((s) => v[s])));
+    expect(flattenStatVectors(vectors)).toEqual(expected);
   });
 
   it("returns an empty Int32Array for an empty input", () => {

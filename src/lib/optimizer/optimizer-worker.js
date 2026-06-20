@@ -45,8 +45,9 @@ function computeDeficitSum(baseValues, thresholdValues, statCount) {
 /**
  * For one combo (given as its flattened `statCount`-length stat vector), computes the
  * tier-deduped best result for every `(adjustment, mod)` pair that meets `thresholdValues`,
- * applying the Phase 1 deficit-sum filter to skip provably-infeasible adjustments. Local copy of
- * `combo-results.ts`'s `computeComboResults`.
+ * applying the Phase 1 deficit-sum filter to skip provably-infeasible adjustments.
+ * Within each tier bucket, the entry with the highest total stat sum wins.
+ * Local copy of `combo-results.ts`'s `computeComboResults`.
  */
 function computeComboResults(
   comboStats,
@@ -55,7 +56,6 @@ function computeComboResults(
   modDeltaFlat,
   modCount,
   thresholdValues,
-  optimizeForIndex,
   statCount
 ) {
   const best = new Map();
@@ -76,6 +76,7 @@ function computeComboResults(
       const modOffset = modIndex * statCount;
       let meetsThresholds = true;
       let key = 0;
+      let total = 0;
 
       for (let i = 0; i < statCount; i++) {
         const value = baseValues[i] + modDeltaFlat[modOffset + i];
@@ -84,14 +85,15 @@ function computeComboResults(
           break;
         }
         sumValues[i] = value;
+        total += value;
         key = key * TIER_KEY_RADIX + (Math.floor(value / 5) + TIER_KEY_OFFSET);
       }
 
       if (!meetsThresholds) continue;
 
       const existing = best.get(key);
-      if (!existing || sumValues[optimizeForIndex] > existing.stats[optimizeForIndex]) {
-        best.set(key, { adjIndex, key, stats: Int32Array.from(sumValues) });
+      if (!existing || total > existing.total) {
+        best.set(key, { adjIndex, key, stats: Int32Array.from(sumValues), total });
       }
     }
   }
@@ -106,7 +108,6 @@ module.exports = ({
   modDeltaFlat,
   modCount,
   thresholdValues,
-  optimizeForIndex,
   statCount,
 }) =>
   computeComboResults(
@@ -116,6 +117,5 @@ module.exports = ({
     modDeltaFlat,
     modCount,
     thresholdValues,
-    optimizeForIndex,
     statCount
   );

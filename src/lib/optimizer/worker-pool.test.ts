@@ -28,12 +28,12 @@ describe("runComboTask", () => {
       modDeltaFlat,
       modCount: getModDeltaSet().length,
       thresholdValues,
-      optimizeForIndex: ARMOR_STAT_ORDER.indexOf("strength"),
       statCount,
     });
 
     expect(results.length).toBeGreaterThan(0);
-    const best = results.reduce((max, r) => Math.max(max, r.stats[ARMOR_STAT_ORDER.indexOf("strength")]), 0);
+    // The mod-delta set includes +50 to a single stat; the best total-sum entry should reach 50.
+    const best = results.reduce((max, r) => Math.max(max, r.total), 0);
     expect(best).toBe(50);
   });
 });
