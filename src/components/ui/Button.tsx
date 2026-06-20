@@ -1,27 +1,21 @@
 "use client";
 
 import type { ButtonHTMLAttributes } from "react";
-import { motion, type HTMLMotionProps } from "motion/react";
 import { cn } from "@/lib/utils/cn";
 
-interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof HTMLMotionProps<"button">>,
-    HTMLMotionProps<"button"> {
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "ghost";
 }
 
 export function Button({ className, variant = "primary", ...props }: ButtonProps) {
   return (
-    <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+    <button
       className={cn(
-        "font-display inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-base font-semibold uppercase tracking-wider transition-colors",
+        "inline-flex items-center justify-center gap-2 px-5 py-2 text-sm uppercase tracking-widest transition-colors cursor-pointer disabled:cursor-not-allowed",
         variant === "primary" &&
-          "bg-arc/10 text-arc border border-arc/40 hover:bg-arc/20 hover:border-arc glow-arc",
+          "border border-border-active text-accent hover:bg-accent/10",
         variant === "ghost" &&
-          "border border-border text-foreground/80 hover:text-foreground hover:border-foreground/40",
+          "border border-border text-fg-dim hover:text-foreground hover:border-border-active",
         className
       )}
       {...props}

@@ -53,24 +53,44 @@ export type ArmorTuning =
   | { kind: "empty" }
   | { kind: "none" };
 
-/** Reads the Tier 5 stat-tuning state from an item's socket plug hashes. */
-export function readArmorTuning(plugHashes: (number | undefined)[]): ArmorTuning {
-  for (const plugHash of plugHashes) {
+/** Reverse map from (increasedStat, decreasedStat) → plug hash. */
+export const TUNING_PLUG_BY_DIRECTION: Map<string, number> = new Map(
+  Object.entries(STAT_TUNING_PLUGS).map(([hash, { increasedStat, decreasedStat }]) => [
+    `${increasedStat}→${decreasedStat}`,
+    Number(hash),
+  ])
+);
+
+/** Returns the plug hash for a given desired tuning, or undefined if the tuning cannot be applied. */
+export function tuningPlugHash(tuning: ArmorTuning): number | undefined {
+  if (tuning.kind === "directional")
+    return TUNING_PLUG_BY_DIRECTION.get(`${tuning.increasedStat}→${tuning.decreasedStat}`);
+  if (tuning.kind === "balanced") return BALANCED_TUNING_PLUG_HASH;
+  if (tuning.kind === "empty") return EMPTY_TUNING_PLUG_HASH;
+  return undefined;
+}
+
+/** Reads the Tier 5 stat-tuning state and socket index from an item's socket plug hashes. */
+export function readArmorTuning(
+  plugHashes: (number | undefined)[]
+): { tuning: ArmorTuning; socketIndex?: number } {
+  for (let i = 0; i < plugHashes.length; i++) {
+    const plugHash = plugHashes[i];
     if (plugHash === undefined) continue;
 
     const directional = STAT_TUNING_PLUGS[plugHash];
     if (directional) {
-      return { kind: "directional", ...directional };
+      return { tuning: { kind: "directional", ...directional }, socketIndex: i };
     }
 
     if (plugHash === BALANCED_TUNING_PLUG_HASH) {
-      return { kind: "balanced" };
+      return { tuning: { kind: "balanced" }, socketIndex: i };
     }
 
     if (plugHash === EMPTY_TUNING_PLUG_HASH) {
-      return { kind: "empty" };
+      return { tuning: { kind: "empty" }, socketIndex: i };
     }
   }
 
-  return { kind: "none" };
+  return { tuning: { kind: "none" } };
 }

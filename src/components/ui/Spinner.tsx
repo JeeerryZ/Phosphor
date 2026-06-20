@@ -1,21 +1,21 @@
 "use client";
 
-import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
+const FRAMES = ["\\", "|", "/", "-"] as const;
+
 export function Spinner({ className }: { className?: string }) {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setFrame((f) => (f + 1) % FRAMES.length), 120);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <div className={cn("relative h-10 w-10", className)}>
-      <motion.span
-        className="absolute inset-0 rounded-full border-2 border-arc/20 border-t-arc"
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-      />
-      <motion.span
-        className="absolute inset-2 rounded-full border-2 border-void/20 border-b-void"
-        animate={{ rotate: -360 }}
-        transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-      />
-    </div>
+    <span className={cn("font-mono text-accent text-sm", className)}>
+      [{FRAMES[frame]}] loading...
+    </span>
   );
 }

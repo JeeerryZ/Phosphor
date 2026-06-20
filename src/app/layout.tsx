@@ -1,25 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Rajdhani } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { BackgroundCanvas } from "@/components/ui/BackgroundCanvas";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const rajdhani = Rajdhani({
-  variable: "--font-rajdhani",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Set Builder",
+  title: "SET BUILDER",
   description: "A Destiny 2 armor optimizer with Tier 5 stat-tuning support.",
 };
 
@@ -29,11 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${rajdhani.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${ibmPlexMono.variable} h-full`}>
+      <body className="min-h-full flex flex-col">
+        <BackgroundCanvas />
+        <div className="relative flex flex-col flex-1 min-h-full" style={{ zIndex: 1 }}>
+          {children}
+        </div>
+      </body>
     </html>
   );
 }

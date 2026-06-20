@@ -44,6 +44,15 @@ export interface ArmorItem {
   isMasterworked: boolean;
   /** "vault" or a characterId */
   location: string;
+  /** Index of the Tier 5 stat-tuning socket within this item's socket array, if present. */
+  tuningSocketIndex?: number;
+  /** Index of the general stat-mod socket (enhancements.v2_general) within this item's socket array, if present. */
+  statModSocketIndex?: number;
+  /**
+   * Exotic perks extracted from sockets — only populated for exotic class items,
+   * where the two randomly-rolled perks are the key differentiator between copies.
+   */
+  exoticPerks?: { name: string; description: string; icon: string }[];
 }
 
 export interface ArmorInventory {

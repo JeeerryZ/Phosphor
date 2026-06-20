@@ -1,13 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils/cn";
 import type { ArmorItem } from "@/lib/armor/types";
 import { ARMOR_STAT_LABELS, ARMOR_STAT_MAX, ARMOR_STAT_ORDER, ARMOR_SLOT_LABELS } from "@/styles/theme";
 
 const TIER_EXOTIC = 6;
-const TIER_LEGENDARY = 5;
 
 interface ArmorCardProps {
   item: ArmorItem;
@@ -16,30 +14,21 @@ interface ArmorCardProps {
 
 export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
   const isExotic = item.tierType === TIER_EXOTIC;
-  const isLegendary = item.tierType === TIER_LEGENDARY;
-
   const totalStats = ARMOR_STAT_ORDER.reduce((sum, stat) => sum + item.stats[stat], 0);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut", delay: index * 0.04 }}
-      whileHover={{ scale: 1.02 }}
+    <div
       className={cn(
-        "rounded-lg border bg-panel/80 p-3 backdrop-blur-sm transition-shadow",
-        isExotic
-          ? "border-solar/50 hover:glow-solar"
-          : isLegendary
-            ? "border-void/40 hover:glow-void"
-            : "border-border hover:border-foreground/30"
+        "border bg-panel p-3 transition-colors",
+        isExotic ? "border-warn hover:border-warn" : "border-border hover:border-border-active"
       )}
+      style={{ animationDelay: `${index * 0.04}s` }}
     >
       <div className="flex items-center gap-3">
         <div
           className={cn(
-            "relative h-12 w-12 shrink-0 overflow-hidden rounded border",
-            isExotic ? "border-solar/60" : isLegendary ? "border-void/50" : "border-border"
+            "relative h-12 w-12 shrink-0 overflow-hidden border",
+            isExotic ? "border-warn" : "border-border"
           )}
         >
           <Image
@@ -47,35 +36,33 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
             alt={item.name}
             fill
             sizes="48px"
-            className="object-cover"
+            className="object-cover icon-terminal"
           />
           {item.isMasterworked && (
             <div
               title="Masterworked"
-              className="absolute right-0 top-0 h-0 w-0 border-t-[11px] border-l-[11px] border-t-[#ceae33] border-l-transparent"
+              className="absolute right-0 top-0 h-0 w-0 border-t-[11px] border-l-[11px] border-t-warn border-l-transparent"
             />
           )}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{item.name}</p>
+          <p className="truncate text-sm font-semibold text-fg">{item.name}</p>
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-display text-xs uppercase tracking-wider text-foreground/50">
+            <p className="text-xs uppercase tracking-wider text-fg-muted">
               {ARMOR_SLOT_LABELS[item.slot]}
             </p>
             {item.gearTier !== undefined && (
-              <span className="font-display rounded-sm border border-arc/40 px-1 text-[9px] font-semibold uppercase tracking-wider text-arc">
-                Tier {item.gearTier}
+              <span className="border border-border-active px-1 text-[9px] uppercase tracking-wider text-accent">
+                T{item.gearTier}
               </span>
             )}
           </div>
         </div>
         <div className="ml-auto shrink-0 text-right">
-          <p className="font-display text-arc text-glow-arc text-lg font-bold leading-none">
-            {totalStats}
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-foreground/40">Total</p>
+          <p className="text-accent text-lg font-bold leading-none tabular-nums">{totalStats}</p>
+          <p className="text-[10px] uppercase tracking-wider text-fg-muted">Total</p>
           {item.power > 0 && (
-            <p className="mt-1 text-[10px] tabular-nums text-foreground/40">{item.power} PWR</p>
+            <p className="mt-1 text-[10px] tabular-nums text-fg-muted">{item.power} PWR</p>
           )}
         </div>
       </div>
@@ -92,25 +79,27 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
               <span
                 className={cn(
                   "w-16 shrink-0 text-[10px] uppercase tracking-wider",
-                  isIncreased ? "text-strand" : isDecreased ? "text-foreground/30" : "text-foreground/50"
+                  isIncreased ? "text-accent" : isDecreased ? "text-fg-muted" : "text-fg-dim"
                 )}
               >
                 {ARMOR_STAT_LABELS[stat]}
               </span>
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-panel-raised">
-                <motion.div
-                  className={cn("h-full rounded-full", isIncreased ? "bg-strand" : "bg-arc")}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.04 + 0.1 }}
+              <div className="h-1.5 flex-1 overflow-hidden bg-panel-raised" style={{ backgroundColor: "rgba(0,255,0,0.06)" }}>
+                <div
+                  className={cn("h-full transition-[width]", isIncreased ? "bg-accent" : "bg-fg-dim")}
+                  style={{
+                    width: `${pct}%`,
+                    transition: `width 0.2s steps(8)`,
+                    transitionDelay: `${index * 0.04 + 0.1}s`,
+                  }}
                 />
               </div>
-              <span className="w-7 shrink-0 text-right text-[11px] tabular-nums text-foreground/70">
+              <span className="w-7 shrink-0 text-right text-[11px] tabular-nums text-fg">
                 {value}
               </span>
               <span className="w-6 shrink-0 text-[10px] font-semibold tabular-nums">
-                {isIncreased && <span className="text-strand">+5</span>}
-                {isDecreased && <span className="text-foreground/30">-5</span>}
+                {isIncreased && <span className="text-accent">+5</span>}
+                {isDecreased && <span className="text-fg-muted">-5</span>}
               </span>
             </div>
           );
@@ -118,15 +107,15 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
       </div>
 
       {item.tuning.kind === "balanced" && (
-        <p className="font-display mt-2 text-[10px] uppercase tracking-wider text-foreground/40">
-          Balanced tuning (+1 all)
+        <p className="mt-2 text-[10px] uppercase tracking-wider text-fg-muted">
+          balanced tuning (+1 all)
         </p>
       )}
       {item.tuning.kind === "empty" && (
-        <p className="font-display mt-2 text-[10px] uppercase tracking-wider text-foreground/30">
-          Tuning socket empty
+        <p className="mt-2 text-[10px] uppercase tracking-wider text-fg-muted">
+          tuning socket empty
         </p>
       )}
-    </motion.div>
+    </div>
   );
 }
