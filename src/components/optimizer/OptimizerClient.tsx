@@ -459,17 +459,17 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
                   <button
                     type="button"
                     onClick={handleChangeExotic}
-                    className="flex shrink-0 items-center gap-1.5 text-xs text-fg-muted transition-colors hover:text-fg cursor-pointer"
+                    className="flex shrink-0 items-center gap-1.5 text-sm text-fg-muted transition-colors hover:text-fg cursor-pointer"
                     aria-label="Change exotic"
                   >
                     <span>←</span>
-                    <span className="hidden sm:inline uppercase tracking-widest text-[10px]">Change</span>
+                    <span className="hidden sm:inline uppercase tracking-widest text-[12px]">Change</span>
                   </button>
 
                   <div className="h-4 w-px bg-border shrink-0" />
 
                   {isNoExoticMode ? (
-                    <span className="text-sm text-fg-dim uppercase tracking-widest">⊘ Legendary Only</span>
+                    <span className="text-base text-fg-dim uppercase tracking-widest">⊘ Legendary Only</span>
                   ) : selectedExotic && (
                     <>
                       <div className="relative h-7 w-7 shrink-0 overflow-hidden border border-warn/50">
@@ -485,12 +485,12 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
                       </div>
                       <div className="min-w-0 flex-1 flex items-baseline gap-2">
                         <span
-                          className="text-sm font-medium text-warn truncate"
+                          className="text-base font-medium text-warn truncate"
                           style={{ fontFamily: "var(--font-sans)" }}
                         >
                           {selectedExotic.name}
                         </span>
-                        <span className="text-[10px] text-fg-muted shrink-0 uppercase tracking-wide">
+                        <span className="text-[12px] text-fg-muted shrink-0 uppercase tracking-wide">
                           {ARMOR_SLOT_LABELS[selectedExotic.slot]}
                         </span>
                       </div>
@@ -499,13 +499,13 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
 
                   {/* Pinned items badge */}
                   {Object.keys(lockedItems).length > 0 && (
-                    <span className="hidden sm:inline text-[10px] border border-accent/40 px-2 py-0.5 text-accent/80 shrink-0">
+                    <span className="hidden sm:inline text-[12px] border border-accent/40 px-2 py-0.5 text-accent/80 shrink-0">
                       ⊙ {Object.keys(lockedItems).length} pinned
                     </span>
                   )}
 
                   <div className="ml-auto flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] tabular-nums text-fg-muted hidden sm:inline">
+                    <span className="text-[12px] tabular-nums text-fg-muted hidden sm:inline">
                       {status === "loading" ? (
                         <span>computing<span className="cursor-blink">▌</span></span>
                       ) : results.length > 0 ? (
@@ -526,16 +526,16 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
                             if (e.key === "Escape") setSaveMode(false);
                           }}
                           placeholder={selectedExotic?.name ?? "Legendary Build"}
-                          className="border border-border-active bg-surface px-2 py-0.5 text-[10px] text-fg w-36 focus:outline-none"
+                          className="border border-border-active bg-surface px-2 py-0.5 text-[12px] text-fg w-36 focus:outline-none"
                         />
-                        <button type="button" onClick={handleSaveBuild} className="text-[10px] border border-border-active px-2 py-0.5 text-accent cursor-pointer hover:bg-accent/5 transition-colors">OK</button>
-                        <button type="button" onClick={() => setSaveMode(false)} className="text-[10px] text-fg-muted cursor-pointer hover:text-fg transition-colors">✕</button>
+                        <button type="button" onClick={handleSaveBuild} className="text-[12px] border border-border-active px-2 py-0.5 text-accent cursor-pointer hover:bg-accent/5 transition-colors">OK</button>
+                        <button type="button" onClick={() => setSaveMode(false)} className="text-[12px] text-fg-muted cursor-pointer hover:text-fg transition-colors">✕</button>
                       </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => { setSaveName(""); setSaveMode(true); }}
-                        className="text-[10px] uppercase tracking-widest border border-border px-2 py-0.5 transition-colors cursor-pointer hover:border-border-active hover:text-fg text-fg-muted"
+                        className="text-[12px] uppercase tracking-widest border border-border px-2 py-0.5 transition-colors cursor-pointer hover:border-border-active hover:text-fg text-fg-muted"
                       >
                         {saveDone ? "SAVED ✓" : "SAVE"}
                       </button>
@@ -549,7 +549,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
                           setTimeout(() => setShareCopied(false), 2000);
                         });
                       }}
-                      className="text-[10px] uppercase tracking-widest border border-border px-2 py-0.5 transition-colors cursor-pointer hover:border-border-active hover:text-fg text-fg-muted"
+                      className="text-[12px] uppercase tracking-widest border border-border px-2 py-0.5 transition-colors cursor-pointer hover:border-border-active hover:text-fg text-fg-muted"
                     >
                       {shareCopied ? "COPIED ✓" : "SHARE"}
                     </button>
@@ -583,7 +583,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
               {/* Results area */}
               <div className="mt-6">
                 {(status === "error" || status === "timeout") && (
-                  <p role="alert" className="text-xs text-error">
+                  <p role="alert" className="text-sm text-error">
                     {status === "timeout" ? "Query timed out." : "Something went wrong."}{" "}
                     <button
                       type="button"

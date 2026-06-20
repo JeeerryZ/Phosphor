@@ -59,16 +59,16 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
     const anyThresholdSet = ARMOR_STAT_ORDER.some((stat) => thresholds[stat] > 0);
     return (
       <div className="mt-2 space-y-1">
-        <p className="text-xs text-fg-muted">No combinations meet the current thresholds.</p>
+        <p className="text-sm text-fg-muted">No combinations meet the current thresholds.</p>
         {bottleneckStat && (
-          <p className="text-xs text-fg-muted">
+          <p className="text-sm text-fg-muted">
             <span className="text-warn">↓</span>{" "}
             Try lowering {ARMOR_STAT_LABELS[bottleneckStat]} — max your armor can reach is{" "}
             <span className="text-fg-dim tabular-nums">{maxStats![bottleneckStat]}</span>.
           </p>
         )}
         {!bottleneckStat && !anyThresholdSet && masterworkOnly && (
-          <p className="text-xs text-fg-muted">
+          <p className="text-sm text-fg-muted">
             <span className="text-warn">↓</span>{" "}
             "Masterwork only" may be excluding every piece in one of your slots — try turning it off.
           </p>
@@ -107,7 +107,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
     <div className="flex flex-col gap-3">
       {/* Sort + count */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[10px] uppercase tracking-widest text-fg-muted mr-1">Sort</span>
+        <span className="text-[12px] uppercase tracking-widest text-fg-muted mr-1">Sort</span>
         {sortKeys.map(({ key, label }) => {
           const active = sortKey === key;
           const color = key !== "total" ? ARMOR_STAT_COLORS[key as ArmorStatName] : undefined;
@@ -117,7 +117,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
               type="button"
               onClick={() => handleSortClick(key)}
               className={cn(
-                "flex items-center gap-1 border px-2 py-0.5 text-[10px] uppercase tracking-wider transition-colors cursor-pointer",
+                "flex items-center gap-1 border px-2 py-0.5 text-[12px] uppercase tracking-wider transition-colors cursor-pointer",
                 active
                   ? "border-border-active text-fg"
                   : "border-border text-fg-muted hover:border-border-active hover:text-fg-dim"
@@ -131,14 +131,14 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
               )}
               {label}
               {active && (
-                <span className="text-[9px] text-fg-dim">
+                <span className="text-[11px] text-fg-dim">
                   {sortDir === "desc" ? "↓" : "↑"}
                 </span>
               )}
             </button>
           );
         })}
-        <span className="ml-auto text-[10px] text-fg-muted">
+        <span className="ml-auto text-[12px] text-fg-muted">
           {results.length} build{results.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -173,7 +173,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                 aria-expanded={isExpanded}
               >
                 {/* Index */}
-                <span className="text-[10px] tabular-nums text-fg-muted w-5 shrink-0">
+                <span className="text-[12px] tabular-nums text-fg-muted w-5 shrink-0">
                   {String(index + 1).padStart(2, "0")}
                 </span>
 
@@ -186,7 +186,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                   return (
                     <span
                       key={stat}
-                      className="flex items-center gap-1 text-xs tabular-nums"
+                      className="flex items-center gap-1 text-sm tabular-nums"
                       style={{ color: met ? color : "var(--color-fg-muted)" }}
                     >
                       <span
@@ -212,14 +212,14 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                 })}
 
                 {/* Total */}
-                <span className="ml-auto text-xs tabular-nums text-fg-dim">
+                <span className="ml-auto text-sm tabular-nums text-fg-dim">
                   ∑{total}
                 </span>
 
                 {/* Chevron */}
                 <span
                   className={cn(
-                    "text-fg-muted text-[10px] transition-transform duration-200 shrink-0",
+                    "text-fg-muted text-[12px] transition-transform duration-200 shrink-0",
                     isExpanded ? "rotate-90" : ""
                   )}
                 >
@@ -262,12 +262,12 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                                   />
                                 )}
                               </div>
-                              <p className="text-[9px] text-fg-muted uppercase tracking-wide">
+                              <p className="text-[11px] text-fg-muted uppercase tracking-wide">
                                 {ARMOR_SLOT_LABELS[slot]}
                               </p>
                               <p
                                 className={cn(
-                                  "line-clamp-2 text-[10px] leading-tight",
+                                  "line-clamp-2 text-[12px] leading-tight",
                                   isExotic ? "text-warn" : "text-fg-dim"
                                 )}
                                 style={{ fontFamily: "var(--font-sans)" }}
@@ -275,7 +275,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                                 {choice.item.name}
                               </p>
                               {choice.tuning.kind === "directional" && (
-                                <p className="text-[9px] leading-snug" style={{ color: "var(--color-accent)" }}>
+                                <p className="text-[11px] leading-snug" style={{ color: "var(--color-accent)" }}>
                                   +{ARMOR_STAT_SHORT[choice.tuning.increasedStat]}
                                   {" / "}
                                   <span className="text-fg-muted">
@@ -292,7 +292,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                                     onClick={() => isLocked ? onUnlockSlot(slot) : onLockSlot(slot, choice.item)}
                                     title={isLocked ? "Unpin this slot" : "Pin this piece"}
                                     className={cn(
-                                      "mt-0.5 text-[9px] uppercase tracking-wider border px-1.5 py-0.5 transition-colors cursor-pointer",
+                                      "mt-0.5 text-[11px] uppercase tracking-wider border px-1.5 py-0.5 transition-colors cursor-pointer",
                                       isLocked
                                         ? "border-accent/50 text-accent"
                                         : "border-border text-fg-muted hover:border-border-active hover:text-fg-dim"
@@ -309,7 +309,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
 
                       {/* Stat contribution breakdown */}
                       <div className="mt-3 border-t border-border pt-3">
-                        <p className="text-[9px] uppercase tracking-widest text-fg-muted mb-2">Stat breakdown</p>
+                        <p className="text-[11px] uppercase tracking-widest text-fg-muted mb-2">Stat breakdown</p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
                           {ARMOR_STAT_ORDER.map((stat) => {
                             const total = result.stats[stat];
@@ -329,7 +329,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                             }
                             const modBonus = total - armorBase - tuningBonus;
                             return (
-                              <div key={stat} className="flex items-center gap-1.5 text-[9px] tabular-nums">
+                              <div key={stat} className="flex items-center gap-1.5 text-[11px] tabular-nums">
                                 <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: color }} />
                                 <span style={{ color }} className="uppercase tracking-wide w-8 shrink-0">
                                   {ARMOR_STAT_SHORT[stat]}
@@ -349,7 +349,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                       {/* Footer */}
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-fg-muted">
+                          <span className="text-[12px] text-fg-muted">
                             {result.freeSlots === 5
                               ? "5 free mod slots"
                               : result.freeSlots === 0
@@ -370,7 +370,7 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                                 setTimeout(() => setDimCopyStates((prev) => ({ ...prev, [resultKey]: "idle" })), 2000);
                               });
                             }}
-                            className="border border-border px-2 py-0.5 text-[9px] uppercase tracking-wider text-fg-muted hover:border-border-active hover:text-fg-dim transition-colors cursor-pointer"
+                            className="border border-border px-2 py-0.5 text-[11px] uppercase tracking-wider text-fg-muted hover:border-border-active hover:text-fg-dim transition-colors cursor-pointer"
                           >
                             {dimCopyStates[resultKey] === "copied" ? "COPIED ✓" : "COPY FOR DIM"}
                           </button>
@@ -439,7 +439,7 @@ function EquipButton({ state, onClick }: { state: EquipState; onClick: () => voi
       disabled={state === "loading"}
       onClick={onClick}
       className={cn(
-        "border px-4 py-1.5 text-[11px] uppercase tracking-wider transition-colors cursor-pointer disabled:cursor-wait",
+        "border px-4 py-1.5 text-[13px] uppercase tracking-wider transition-colors cursor-pointer disabled:cursor-wait",
         cls
       )}
     >

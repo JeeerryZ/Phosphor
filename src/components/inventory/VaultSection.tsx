@@ -37,7 +37,7 @@ export function VaultSection({ items }: VaultSectionProps) {
           if (!slotItems || slotItems.length === 0) return null;
           return (
             <div key={slot}>
-              <p className="font-display mb-2 text-xs uppercase tracking-[0.3em] text-foreground/40">
+              <p className="font-display mb-2 text-sm uppercase tracking-[0.3em] text-foreground/40">
                 {ARMOR_SLOT_LABELS[slot]} ({slotItems.length})
               </p>
               <div className="flex flex-col gap-2">

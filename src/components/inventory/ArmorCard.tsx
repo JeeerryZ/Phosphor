@@ -46,13 +46,13 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
           )}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-fg">{item.name}</p>
+          <p className="truncate text-base font-semibold text-fg">{item.name}</p>
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-xs uppercase tracking-wider text-fg-muted">
+            <p className="text-sm uppercase tracking-wider text-fg-muted">
               {ARMOR_SLOT_LABELS[item.slot]}
             </p>
             {item.gearTier !== undefined && (
-              <span className="border border-border-active px-1 text-[9px] uppercase tracking-wider text-accent">
+              <span className="border border-border-active px-1 text-[11px] uppercase tracking-wider text-accent">
                 T{item.gearTier}
               </span>
             )}
@@ -60,9 +60,9 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
         </div>
         <div className="ml-auto shrink-0 text-right">
           <p className="text-accent text-lg font-bold leading-none tabular-nums">{totalStats}</p>
-          <p className="text-[10px] uppercase tracking-wider text-fg-muted">Total</p>
+          <p className="text-[12px] uppercase tracking-wider text-fg-muted">Total</p>
           {item.power > 0 && (
-            <p className="mt-1 text-[10px] tabular-nums text-fg-muted">{item.power} PWR</p>
+            <p className="mt-1 text-[12px] tabular-nums text-fg-muted">{item.power} PWR</p>
           )}
         </div>
       </div>
@@ -78,7 +78,7 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
             <div key={stat} className="flex items-center gap-2">
               <span
                 className={cn(
-                  "w-16 shrink-0 text-[10px] uppercase tracking-wider",
+                  "w-16 shrink-0 text-[12px] uppercase tracking-wider",
                   isIncreased ? "text-accent" : isDecreased ? "text-fg-muted" : "text-fg-dim"
                 )}
               >
@@ -94,10 +94,10 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
                   }}
                 />
               </div>
-              <span className="w-7 shrink-0 text-right text-[11px] tabular-nums text-fg">
+              <span className="w-7 shrink-0 text-right text-[13px] tabular-nums text-fg">
                 {value}
               </span>
-              <span className="w-6 shrink-0 text-[10px] font-semibold tabular-nums">
+              <span className="w-6 shrink-0 text-[12px] font-semibold tabular-nums">
                 {isIncreased && <span className="text-accent">+5</span>}
                 {isDecreased && <span className="text-fg-muted">-5</span>}
               </span>
@@ -107,12 +107,12 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
       </div>
 
       {item.tuning.kind === "balanced" && (
-        <p className="mt-2 text-[10px] uppercase tracking-wider text-fg-muted">
+        <p className="mt-2 text-[12px] uppercase tracking-wider text-fg-muted">
           balanced tuning (+1 all)
         </p>
       )}
       {item.tuning.kind === "empty" && (
-        <p className="mt-2 text-[10px] uppercase tracking-wider text-fg-muted">
+        <p className="mt-2 text-[12px] uppercase tracking-wider text-fg-muted">
           tuning socket empty
         </p>
       )}

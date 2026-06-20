@@ -14,7 +14,7 @@ export function Spinner({ className }: { className?: string }) {
   }, []);
 
   return (
-    <span className={cn("font-mono text-accent text-sm", className)}>
+    <span className={cn("font-mono text-accent text-base", className)}>
       [{FRAMES[frame]}] loading...
     </span>
   );

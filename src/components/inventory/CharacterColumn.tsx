@@ -63,10 +63,10 @@ export function CharacterColumn({
             />
           </div>
           <div>
-            <p className="font-display text-sm font-semibold uppercase tracking-wider">
+            <p className="font-display text-base font-semibold uppercase tracking-wider">
               {CLASS_TYPE_LABELS[classType] ?? "Guardian"}
             </p>
-            <p className="font-display text-arc text-glow-arc text-xs">Power {light}</p>
+            <p className="font-display text-arc text-glow-arc text-sm">Power {light}</p>
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ export function CharacterColumn({
           if (!slotItems || slotItems.length === 0) return null;
           return (
             <div key={slot}>
-              <p className="font-display mb-2 text-xs uppercase tracking-[0.3em] text-foreground/40">
+              <p className="font-display mb-2 text-sm uppercase tracking-[0.3em] text-foreground/40">
                 {ARMOR_SLOT_LABELS[slot]}
               </p>
               <div className="flex flex-col gap-2">

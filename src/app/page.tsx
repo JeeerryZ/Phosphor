@@ -25,13 +25,13 @@ export default async function Home() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <PageTransition>
-          <p className="text-xs text-fg-muted tracking-[0.3em] uppercase mb-6">Destiny 2</p>
+          <p className="text-sm text-fg-muted tracking-[0.3em] uppercase mb-6">Destiny 2</p>
           <h1 className="text-6xl font-bold tracking-tight sm:text-8xl" style={{ fontFamily: "var(--font-sans)" }}>
             <span className="text-fg">Set</span>
             <span className="text-accent">Builder</span>
           </h1>
-          <p className="mt-4 text-sm text-fg-dim tracking-widest uppercase">Armor Optimizer · T5 Stat Tuning</p>
-          <p className="mx-auto mt-8 max-w-md text-sm text-fg-muted leading-relaxed">
+          <p className="mt-4 text-base text-fg-dim tracking-widest uppercase">Armor Optimizer · T5 Stat Tuning</p>
+          <p className="mx-auto mt-8 max-w-md text-base text-fg-muted leading-relaxed">
             Find optimal armor combinations across your vault, including Tier 5 tuning
             where each piece can shift +5 points into any stat.
           </p>
@@ -64,7 +64,7 @@ export default async function Home() {
               <span className="text-fg">Set</span>
               <span className="text-accent">Builder</span>
             </h1>
-            <span className="text-xs text-fg-muted tracking-widest uppercase">Armor Optimizer</span>
+            <span className="text-sm text-fg-muted tracking-widest uppercase">Armor Optimizer</span>
           </div>
           <OptimizerClient
             inventory={inventory}

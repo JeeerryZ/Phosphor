@@ -54,7 +54,7 @@ export function ExoticPicker({
           <button
             type="button"
             onClick={() => setSavesOpen((v) => !v)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-fg-muted hover:text-fg-dim transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2 px-3 py-2 text-[12px] uppercase tracking-widest text-fg-muted hover:text-fg-dim transition-colors cursor-pointer"
           >
             <span>{savesOpen ? "▾" : "▸"}</span>
             My Saves
@@ -75,7 +75,7 @@ export function ExoticPicker({
                         className="object-cover"
                       />
                     ) : (
-                      <span className="flex h-full w-full items-center justify-center text-[10px] text-fg-muted">⊘</span>
+                      <span className="flex h-full w-full items-center justify-center text-[12px] text-fg-muted">⊘</span>
                     )}
                   </div>
 
@@ -85,10 +85,10 @@ export function ExoticPicker({
                     onClick={() => onLoadBuild(build)}
                     className="flex-1 min-w-0 text-left cursor-pointer"
                   >
-                    <p className="text-[11px] font-medium text-fg-dim group-hover:text-fg transition-colors truncate">
+                    <p className="text-[13px] font-medium text-fg-dim group-hover:text-fg transition-colors truncate">
                       {build.name}
                     </p>
-                    <p className="text-[9px] text-fg-muted mt-0.5 truncate">
+                    <p className="text-[11px] text-fg-muted mt-0.5 truncate">
                       {CLASS_TYPE_LABELS[build.classType]} ·{" "}
                       {build.exoticName ?? "Legendary Only"} ·{" "}
                       {new Date(build.savedAt).toLocaleDateString()}
@@ -99,7 +99,7 @@ export function ExoticPicker({
                   <button
                     type="button"
                     onClick={() => onDeleteBuild(build.id)}
-                    className="text-fg-muted hover:text-error transition-colors cursor-pointer text-xs opacity-0 group-hover:opacity-100 shrink-0"
+                    className="text-fg-muted hover:text-error transition-colors cursor-pointer text-sm opacity-0 group-hover:opacity-100 shrink-0"
                     aria-label="Delete saved build"
                   >
                     ×
@@ -119,7 +119,7 @@ export function ExoticPicker({
             type="button"
             onClick={() => { onSelectClassType(classType); setSearch(""); }}
             className={cn(
-              "relative px-5 py-2.5 text-xs uppercase tracking-[0.15em] transition-colors cursor-pointer",
+              "relative px-5 py-2.5 text-sm uppercase tracking-[0.15em] transition-colors cursor-pointer",
               classType === selectedClassType ? "text-accent" : "text-fg-muted hover:text-fg-dim"
             )}
           >
@@ -136,13 +136,13 @@ export function ExoticPicker({
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted text-sm select-none">⌕</span>
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted text-base select-none">⌕</span>
         <input
           type="text"
           placeholder="Search exotics…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-fg placeholder:text-fg-muted focus:border-border-active focus:outline-none transition-colors"
+          className="w-full border border-border bg-surface pl-8 pr-3 py-1.5 text-base text-fg placeholder:text-fg-muted focus:border-border-active focus:outline-none transition-colors"
         />
       </div>
 
@@ -152,13 +152,13 @@ export function ExoticPicker({
         onClick={onNoExotic}
         className="w-full border border-border bg-surface px-4 py-2.5 text-left transition-colors hover:border-border-active hover:bg-surface-raised cursor-pointer"
       >
-        <span className="text-xs uppercase tracking-widest text-fg-muted">⊘ Legendary Only</span>
-        <span className="ml-3 text-[10px] text-fg-muted opacity-60">optimize without an exotic</span>
+        <span className="text-sm uppercase tracking-widest text-fg-muted">⊘ Legendary Only</span>
+        <span className="ml-3 text-[12px] text-fg-muted opacity-60">optimize without an exotic</span>
       </button>
 
       {/* Exotic grid */}
       {exotics.length === 0 ? (
-        <p className="py-16 text-center text-sm text-fg-muted">
+        <p className="py-16 text-center text-base text-fg-muted">
           {search ? `No exotics matching "${search}"` : "No exotics found for this class"}
         </p>
       ) : (
@@ -198,7 +198,7 @@ export function ExoticPicker({
                 {/* Name */}
                 <p
                   className={cn(
-                    "w-full text-[11px] font-medium leading-tight line-clamp-2",
+                    "w-full text-[13px] font-medium leading-tight line-clamp-2",
                     selected ? "text-warn" : "text-fg-dim group-hover:text-fg"
                   )}
                   style={{ fontFamily: "var(--font-sans)" }}
@@ -207,7 +207,7 @@ export function ExoticPicker({
                 </p>
 
                 {/* Slot */}
-                <p className="text-[9px] text-fg-muted uppercase tracking-wide">
+                <p className="text-[11px] text-fg-muted uppercase tracking-wide">
                   {ARMOR_SLOT_LABELS[item.slot]}
                 </p>
 
@@ -215,7 +215,7 @@ export function ExoticPicker({
                 {isExoticClassItem && (
                   <div className="w-full space-y-0.5 border-t border-border/50 pt-1 mt-0.5">
                     {item.exoticPerks!.map((perk) => (
-                      <p key={perk.name} className="text-[8px] text-fg-muted leading-tight truncate" title={perk.description}>
+                      <p key={perk.name} className="text-[10px] text-fg-muted leading-tight truncate" title={perk.description}>
                         {perk.name}
                       </p>
                     ))}

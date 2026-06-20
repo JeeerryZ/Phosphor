@@ -22,11 +22,11 @@ function fmt(n: number): string {
 function Row({ label, value, dim }: { label: string; value: string | number; dim?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-[10px] uppercase tracking-widest" style={{ color: "var(--color-fg-muted)" }}>
+      <span className="text-[12px] uppercase tracking-widest" style={{ color: "var(--color-fg-muted)" }}>
         {label}
       </span>
       <span
-        className="font-mono text-xs tabular-nums"
+        className="font-mono text-sm tabular-nums"
         style={{ color: dim ? "var(--color-fg-muted)" : "var(--color-accent)" }}
       >
         {value}
@@ -71,16 +71,16 @@ export function OptimizerDebugOverlay({ info }: Props) {
         className="w-full flex items-center justify-between px-3 py-2 border-b border-border cursor-pointer hover:bg-surface-raised transition-colors"
       >
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px]" style={{ color: "var(--color-fg-muted)" }}>▶</span>
-          <span className="text-[10px] uppercase tracking-widest" style={{ color: "var(--color-fg-muted)" }}>
+          <span className="text-[12px]" style={{ color: "var(--color-fg-muted)" }}>▶</span>
+          <span className="text-[12px] uppercase tracking-widest" style={{ color: "var(--color-fg-muted)" }}>
             Optimizer
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[9px] tracking-widest" style={{ color: "var(--color-fg-muted)" }}>
+          <span className="text-[11px] tracking-widest" style={{ color: "var(--color-fg-muted)" }}>
             {info.elapsedMs} ms
           </span>
-          <span className="text-[9px]" style={{ color: "var(--color-fg-muted)" }}>
+          <span className="text-[11px]" style={{ color: "var(--color-fg-muted)" }}>
             {visible ? "▲" : "▼"}
           </span>
         </div>
@@ -109,7 +109,7 @@ export function OptimizerDebugOverlay({ info }: Props) {
 
           <Divider />
 
-          <p className="text-[9px] text-center" style={{ color: "var(--color-fg-muted)" }}>
+          <p className="text-[11px] text-center" style={{ color: "var(--color-fg-muted)" }}>
             press D to toggle
           </p>
         </div>

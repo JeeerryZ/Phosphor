@@ -83,7 +83,7 @@ export function OptimizerControls({
               )}
             />
           </button>
-          <span className="text-[10px] uppercase tracking-widest text-fg-muted group-hover:text-fg-dim transition-colors">
+          <span className="text-[12px] uppercase tracking-widest text-fg-muted group-hover:text-fg-dim transition-colors">
             Masterwork only
           </span>
         </label>
@@ -92,7 +92,7 @@ export function OptimizerControls({
         <button
           type="button"
           onClick={() => setFragOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest cursor-pointer transition-colors text-fg-muted hover:text-fg-dim"
+          className="flex items-center gap-1.5 text-[12px] uppercase tracking-widest cursor-pointer transition-colors text-fg-muted hover:text-fg-dim"
         >
           <span>{fragOpen ? "▾" : "▸"}</span>
           Fragment bonuses
@@ -107,7 +107,7 @@ export function OptimizerControls({
           onClick={onImportFragments}
           disabled={importFragmentsState === "loading"}
           className={cn(
-            "text-[10px] uppercase tracking-widest border px-2 py-0.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait",
+            "text-[12px] uppercase tracking-widest border px-2 py-0.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait",
             IMPORT_BUTTON_CONFIG[importFragmentsState].cls
           )}
         >
@@ -118,7 +118,7 @@ export function OptimizerControls({
       {/* Fragment bonus section */}
       {fragOpen && (
         <div className="mb-3 border border-border bg-surface-raised p-3 flex flex-col gap-2">
-          <p className="text-[9px] uppercase tracking-widest text-fg-muted mb-1">
+          <p className="text-[11px] uppercase tracking-widest text-fg-muted mb-1">
             Stat bonuses from subclass fragments — subtracted from armor requirement
           </p>
           {ARMOR_STAT_ORDER.map((stat) => {
@@ -128,7 +128,7 @@ export function OptimizerControls({
             return (
               <div key={stat} className="flex items-center gap-3">
                 <span
-                  className="w-20 shrink-0 text-[10px] uppercase tracking-widest"
+                  className="w-20 shrink-0 text-[12px] uppercase tracking-widest"
                   style={{ color: bonusColor }}
                 >
                   {ARMOR_STAT_SHORT[stat]}
@@ -137,12 +137,12 @@ export function OptimizerControls({
                   type="button"
                   disabled={bonus <= FRAG_BONUS_MIN}
                   onClick={() => onFragmentBonusChange(stat, Math.max(FRAG_BONUS_MIN, bonus - FRAG_BONUS_STEP))}
-                  className="h-5 w-5 border border-border text-[10px] text-fg-muted hover:border-border-active hover:text-fg-dim disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  className="h-5 w-5 border border-border text-[12px] text-fg-muted hover:border-border-active hover:text-fg-dim disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 >
                   −
                 </button>
                 <span
-                  className="w-6 text-center text-xs tabular-nums"
+                  className="w-6 text-center text-sm tabular-nums"
                   style={{ color: bonusColor }}
                 >
                   {bonus > 0 ? `+${bonus}` : bonus}
@@ -151,7 +151,7 @@ export function OptimizerControls({
                   type="button"
                   disabled={bonus >= FRAG_BONUS_MAX}
                   onClick={() => onFragmentBonusChange(stat, Math.min(FRAG_BONUS_MAX, bonus + FRAG_BONUS_STEP))}
-                  className="h-5 w-5 border border-border text-[10px] text-fg-muted hover:border-border-active hover:text-fg-dim disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  className="h-5 w-5 border border-border text-[12px] text-fg-muted hover:border-border-active hover:text-fg-dim disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 >
                   +
                 </button>
@@ -167,7 +167,7 @@ export function OptimizerControls({
           {lockedSlots.map(([slot, item]) => (
             <div
               key={slot}
-              className="flex items-center gap-1.5 border border-accent/30 bg-accent/5 px-2 py-0.5 text-[10px]"
+              className="flex items-center gap-1.5 border border-accent/30 bg-accent/5 px-2 py-0.5 text-[12px]"
             >
               <span className="text-accent/70 uppercase tracking-wider">{ARMOR_SLOT_LABELS[slot]}</span>
               <span className="text-fg-muted truncate max-w-[10rem]">{item.name}</span>
@@ -218,7 +218,7 @@ export function OptimizerControls({
                   </div>
                 )}
                 <span
-                  className="text-[11px] uppercase tracking-widest transition-colors"
+                  className="text-[13px] uppercase tracking-widest transition-colors"
                   style={{ color: active ? color : "var(--color-fg-muted)" }}
                 >
                   {ARMOR_STAT_SHORT[stat]}
@@ -248,12 +248,12 @@ export function OptimizerControls({
                 "w-32 shrink-0 text-right transition-colors",
                 active ? "text-fg" : "text-fg-muted"
               )}>
-                <span className="text-xs tabular-nums">{value}</span>
+                <span className="text-sm tabular-nums">{value}</span>
                 {active && (() => {
                   const tier = Math.min(Math.floor(value / 10), 10);
                   const hint = STAT_TIER_HINTS[stat][tier];
                   return (
-                    <span className="ml-1.5 text-[10px]" style={{ color: "var(--color-fg-muted)" }}>
+                    <span className="ml-1.5 text-[12px]" style={{ color: "var(--color-fg-muted)" }}>
                       T{tier}
                       {hint && (
                         <span className="ml-1" style={{ color: ARMOR_STAT_COLORS[stat], opacity: 0.55 }}>
@@ -266,7 +266,7 @@ export function OptimizerControls({
               </div>
 
               {/* Max — always rendered for layout stability */}
-              <span className="w-10 shrink-0 text-[10px] tabular-nums text-fg-muted text-right">
+              <span className="w-10 shrink-0 text-[12px] tabular-nums text-fg-muted text-right">
                 {hasMax ? `/${maxStats![stat]}` : ""}
               </span>
             </div>

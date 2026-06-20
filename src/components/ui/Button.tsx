@@ -11,7 +11,7 @@ export function Button({ className, variant = "primary", ...props }: ButtonProps
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-5 py-2 text-sm uppercase tracking-widest transition-colors cursor-pointer disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-5 py-2 text-base uppercase tracking-widest transition-colors cursor-pointer disabled:cursor-not-allowed",
         variant === "primary" &&
           "border border-border-active text-accent hover:bg-accent/10",
         variant === "ghost" &&
