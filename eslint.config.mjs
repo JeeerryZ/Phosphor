@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Nested git worktrees live inside this directory tree and would otherwise be linted
+    // as part of the main checkout.
+    ".worktrees/**",
+    ".claude/**",
   ]),
 ]);
 
