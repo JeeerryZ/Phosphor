@@ -71,6 +71,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
   const [saveDone, setSaveDone] = useState(false);
   const [importFragmentsState, setImportFragmentsState] = useState<"idle" | "loading" | "error">("idle");
   const requestIdRef = useRef(0);
+  const importFragmentsRequestIdRef = useRef(0);
   const phaseEnteredRef = useRef(false);
   const urlRestoredRef = useRef(false);
 
@@ -236,17 +237,17 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
 
   const handleImportFragments = useCallback(async () => {
     if (!activeCharacterId) return;
-    const requestId = ++requestIdRef.current;
+    const requestId = ++importFragmentsRequestIdRef.current;
     setImportFragmentsState("loading");
     try {
       const response = await fetch(`/api/loadout/fragments?characterId=${activeCharacterId}`);
       if (!response.ok) throw new Error("Import failed");
       const data = (await response.json()) as { stats: ArmorStats };
-      if (requestIdRef.current !== requestId) return;
+      if (importFragmentsRequestIdRef.current !== requestId) return;
       setFragmentBonuses(data.stats);
       setImportFragmentsState("idle");
     } catch (err) {
-      if (requestIdRef.current !== requestId) return;
+      if (importFragmentsRequestIdRef.current !== requestId) return;
       console.error("Failed to import fragment stats:", err);
       setImportFragmentsState("error");
       setTimeout(() => setImportFragmentsState("idle"), 3000);
@@ -352,7 +353,7 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
       if (thresholds[stat] > 0) params.set(key, String(thresholds[stat]));
     }
     for (const [key, stat] of STAT_PARAM_KEYS) {
-      if (fragmentBonuses[stat] > 0) params.set(`fb_${key}`, String(fragmentBonuses[stat]));
+      if (fragmentBonuses[stat] !== 0) params.set(`fb_${key}`, String(fragmentBonuses[stat]));
     }
     window.history.replaceState(null, "", `?${params.toString()}`);
   }, [phase, selectedExotic, classType, thresholds, fragmentBonuses]);
