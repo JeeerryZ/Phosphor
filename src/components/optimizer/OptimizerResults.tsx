@@ -283,6 +283,19 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
                                   </span>
                                 </p>
                               )}
+                              {/* Per-piece stats */}
+                              <div className="grid grid-cols-3 gap-x-1.5 gap-y-0.5 w-full">
+                                {ARMOR_STAT_ORDER.map((stat) => (
+                                  <span
+                                    key={stat}
+                                    className="flex items-center justify-center gap-0.5 text-[10px] tabular-nums"
+                                    style={{ color: ARMOR_STAT_COLORS[stat] }}
+                                  >
+                                    <span className="opacity-60">{ARMOR_STAT_SHORT[stat]}</span>
+                                    {choice.stats[stat]}
+                                  </span>
+                                ))}
+                              </div>
                               {/* Pin button */}
                               {(() => {
                                 const isLocked = lockedItems[slot] === choice.item.itemInstanceId;

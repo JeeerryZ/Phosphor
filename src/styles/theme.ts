@@ -39,31 +39,6 @@ export const ARMOR_STAT_ORDER: ArmorStatName[] = [
   "mobility",
 ];
 
-/**
- * Per-stat cooldown/value hint at each tier (T0–T10).
- * Mobility = Hunter dodge; Resilience = PvE resist; Recovery = class regen/rift.
- * Grenade/Melee use a standard ability as reference. Super uses a mid-range super type.
- * Values are approximate — exact figures vary by ability type and season balance.
- */
-export const STAT_TIER_HINTS: Record<ArmorStatName, readonly string[]> = {
-  mobility:    ["29s","26s","23s","21s","19s","17s","15s","13s","11s","10s","9s"],
-  resilience:  ["0%","8%","9%","10%","11%","11%","12%","13%","14%","15%","40%"],
-  recovery:    ["33s","30s","27s","24s","21s","19s","17s","15s","14s","13s","12s"],
-  discipline:  ["182s","164s","148s","133s","120s","109s","100s","91s","83s","76s","64s"],
-  intellect:   ["8:00","7:28","6:59","6:33","6:10","5:50","5:31","5:15","5:00","4:46","4:33"],
-  strength:    ["182s","164s","148s","133s","120s","109s","100s","91s","83s","76s","64s"],
-};
-
-/** Short ability label for each stat's cooldown hint. */
-export const STAT_TIER_HINT_LABELS: Record<ArmorStatName, string> = {
-  mobility:    "dodge",
-  resilience:  "resist",
-  recovery:    "rift",
-  discipline:  "grenade",
-  intellect:   "super",
-  strength:    "melee",
-};
-
 /** Approximate max value of a single armor stat (legendary, masterworked + tuning). */
 export const ARMOR_STAT_MAX = 40;
 

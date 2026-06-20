@@ -9,8 +9,6 @@ import {
   ARMOR_STAT_SHORT,
   OPTIMIZER_STAT_MAX,
   OPTIMIZER_STAT_STEP,
-  STAT_TIER_HINTS,
-  STAT_TIER_HINT_LABELS,
   ARMOR_SLOT_LABELS,
 } from "@/styles/theme";
 import type { ArmorItem, ArmorSlot, ArmorStatName, ArmorStats } from "@/lib/armor/types";
@@ -243,7 +241,7 @@ export function OptimizerControls({
                 }
               />
 
-              {/* Value + tier + cooldown hint */}
+              {/* Value + tier */}
               <div className={cn(
                 "w-32 shrink-0 text-right transition-colors",
                 active ? "text-fg" : "text-fg-muted"
@@ -251,15 +249,9 @@ export function OptimizerControls({
                 <span className="text-sm tabular-nums">{value}</span>
                 {active && (() => {
                   const tier = Math.min(Math.floor(value / 10), 10);
-                  const hint = STAT_TIER_HINTS[stat][tier];
                   return (
                     <span className="ml-1.5 text-[12px]" style={{ color: "var(--color-fg-muted)" }}>
                       T{tier}
-                      {hint && (
-                        <span className="ml-1" style={{ color: ARMOR_STAT_COLORS[stat], opacity: 0.55 }}>
-                          {hint} {STAT_TIER_HINT_LABELS[stat]}
-                        </span>
-                      )}
                     </span>
                   );
                 })()}
