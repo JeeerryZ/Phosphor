@@ -35,6 +35,12 @@ const FRAG_BONUS_MIN = -30;
 const FRAG_BONUS_MAX = 30;
 const FRAG_BONUS_STEP = 5;
 
+const IMPORT_BUTTON_CONFIG: Record<"idle" | "loading" | "error", { label: string; cls: string }> = {
+  idle: { label: "Import from equipped", cls: "border-border text-fg-muted hover:border-border-active hover:text-fg-dim" },
+  loading: { label: "Importing…", cls: "border-border text-fg-muted" },
+  error: { label: "Failed — Retry", cls: "border-error/40 text-error hover:bg-error/8" },
+};
+
 export function OptimizerControls({
   thresholds,
   onThresholdChange,
@@ -100,9 +106,12 @@ export function OptimizerControls({
           type="button"
           onClick={onImportFragments}
           disabled={importFragmentsState === "loading"}
-          className="text-[10px] uppercase tracking-widest border border-border px-2 py-0.5 transition-colors cursor-pointer hover:border-border-active hover:text-fg-dim text-fg-muted disabled:opacity-50 disabled:cursor-wait"
+          className={cn(
+            "text-[10px] uppercase tracking-widest border px-2 py-0.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait",
+            IMPORT_BUTTON_CONFIG[importFragmentsState].cls
+          )}
         >
-          {importFragmentsState === "loading" ? "Importing…" : importFragmentsState === "error" ? "Failed — Retry" : "Import from equipped"}
+          {IMPORT_BUTTON_CONFIG[importFragmentsState].label}
         </button>
       </div>
 
@@ -115,11 +124,12 @@ export function OptimizerControls({
           {ARMOR_STAT_ORDER.map((stat) => {
             const bonus = fragmentBonuses[stat] ?? 0;
             const color = ARMOR_STAT_COLORS[stat];
+            const bonusColor = bonus > 0 ? color : bonus < 0 ? "var(--color-error)" : "var(--color-fg-muted)";
             return (
               <div key={stat} className="flex items-center gap-3">
                 <span
                   className="w-20 shrink-0 text-[10px] uppercase tracking-widest"
-                  style={{ color: bonus > 0 ? color : bonus < 0 ? "var(--color-error)" : "var(--color-fg-muted)" }}
+                  style={{ color: bonusColor }}
                 >
                   {ARMOR_STAT_SHORT[stat]}
                 </span>
@@ -133,7 +143,7 @@ export function OptimizerControls({
                 </button>
                 <span
                   className="w-6 text-center text-xs tabular-nums"
-                  style={{ color: bonus > 0 ? color : bonus < 0 ? "var(--color-error)" : "var(--color-fg-muted)" }}
+                  style={{ color: bonusColor }}
                 >
                   {bonus > 0 ? `+${bonus}` : bonus}
                 </span>
