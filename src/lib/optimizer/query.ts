@@ -57,6 +57,21 @@ function totalStats(stats: StatVector): number {
  */
 const MAX_CANDIDATES_PER_SLOT = 20;
 
+/**
+ * Whether `item` can actually be tuned, and which stats it's allowed to increase if so.
+ * Exotics are free-choice (any of the 6 stats); legendary items are restricted to their
+ * single live-determined increase stat, or not tunable at all if that couldn't be
+ * determined. Centralized here so hasTuning and allowedIncreaseStats can never disagree.
+ */
+function deriveTuningFields(item: ArmorItem): { hasTuning: boolean; allowedIncreaseStats: ArmorStatName[] } {
+  const isExotic = item.tierType === 6;
+  const canTune = item.gearTier === 5 && (isExotic || item.legendaryTuningIncreaseStat !== undefined);
+  return {
+    hasTuning: canTune,
+    allowedIncreaseStats: !canTune ? [] : isExotic ? ARMOR_STAT_ORDER : [item.legendaryTuningIncreaseStat!],
+  };
+}
+
 function rankCandidates(items: ArmorItem[]): SlotCandidate[] {
   const sorted = [...items].sort((a, b) => totalStats(b.stats) - totalStats(a.stats));
   const topN = sorted.slice(0, MAX_CANDIDATES_PER_SLOT);
@@ -74,17 +89,7 @@ function rankCandidates(items: ArmorItem[]): SlotCandidate[] {
     }
   }
 
-  return topN.map((item) => {
-    const isExotic = item.tierType === 6;
-    const isLegendaryWithFixedStat = !isExotic && item.legendaryTuningIncreaseStat !== undefined;
-    const canTune = item.gearTier === 5 && (isExotic || isLegendaryWithFixedStat);
-    return {
-      item,
-      stats: item.stats,
-      hasTuning: canTune,
-      allowedIncreaseStats: !canTune ? [] : isExotic ? ARMOR_STAT_ORDER : [item.legendaryTuningIncreaseStat!],
-    };
-  });
+  return topN.map((item) => ({ item, stats: item.stats, ...deriveTuningFields(item) }));
 }
 
 /** Builds the per-slot loadout, assigning each tuned slot's stats/tuning from `tuningAssignment` in slot order. */
@@ -285,12 +290,7 @@ export async function computeOptimizerQuery(
 
   for (const slot of ALL_SLOTS) {
     if (exotic && slot === exotic.slot) {
-      itemsBySlot[slot] = [{
-        item: exotic,
-        stats: exotic.stats,
-        hasTuning: exotic.gearTier === 5,
-        allowedIncreaseStats: exotic.gearTier === 5 ? ARMOR_STAT_ORDER : [],
-      }];
+      itemsBySlot[slot] = [{ item: exotic, stats: exotic.stats, ...deriveTuningFields(exotic) }];
       continue;
     }
 
