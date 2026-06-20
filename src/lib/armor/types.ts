@@ -14,6 +14,15 @@ export type ArmorStatName = keyof typeof ARMOR_STAT_HASHES;
 
 export type ArmorStats = Record<ArmorStatName, number>;
 
+export const EMPTY_ARMOR_STATS: ArmorStats = {
+  mobility: 0,
+  resilience: 0,
+  recovery: 0,
+  discipline: 0,
+  intellect: 0,
+  strength: 0,
+};
+
 /** Inventory bucket hashes for the 5 armor slots, stable across Destiny 2's lifetime. */
 export const ARMOR_BUCKET_HASHES = {
   helmet: 3448274439,

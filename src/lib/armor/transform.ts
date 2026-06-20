@@ -3,6 +3,7 @@ import { getItemDefinition } from "../manifest/definitions";
 import {
   ARMOR_BUCKET_HASHES,
   ARMOR_STAT_HASHES,
+  EMPTY_ARMOR_STATS,
   type ArmorInventory,
   type ArmorItem,
   type ArmorSlot,
@@ -61,26 +62,17 @@ function readExoticPerks(
   return perks;
 }
 
-const EMPTY_STATS: ArmorStats = {
-  mobility: 0,
-  resilience: 0,
-  recovery: 0,
-  discipline: 0,
-  intellect: 0,
-  strength: 0,
-};
-
 function buildStats(itemInstanceId: string | undefined, profile: DestinyProfileResponse): ArmorStats {
   if (!itemInstanceId) {
-    return { ...EMPTY_STATS };
+    return { ...EMPTY_ARMOR_STATS };
   }
 
   const statsData = profile.itemComponents.stats.data?.[itemInstanceId]?.stats;
   if (!statsData) {
-    return { ...EMPTY_STATS };
+    return { ...EMPTY_ARMOR_STATS };
   }
 
-  const result = { ...EMPTY_STATS };
+  const result = { ...EMPTY_ARMOR_STATS };
   for (const [statName, statHash] of Object.entries(ARMOR_STAT_HASHES) as [
     keyof ArmorStats,
     number,
