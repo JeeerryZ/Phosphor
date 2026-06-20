@@ -94,4 +94,16 @@ describe("readLegendaryTuningIncreaseStat", () => {
 
     expect(readLegendaryTuningIncreaseStat("item-1", 5, profile)).toBeUndefined();
   });
+
+  it("returns undefined when insertable plugs disagree on which stat to increase", async () => {
+    const { readLegendaryTuningIncreaseStat } = await import("./transform");
+    const disciplinePlug = Object.entries(STAT_TUNING_PLUGS).find(([, v]) => v.increasedStat === "discipline")!;
+    const mobilityPlug = Object.entries(STAT_TUNING_PLUGS).find(([, v]) => v.increasedStat === "mobility")!;
+    const profile = makeProfileWithReusablePlugs([
+      { plugItemHash: Number(disciplinePlug[0]), canInsert: true },
+      { plugItemHash: Number(mobilityPlug[0]), canInsert: true },
+    ]);
+
+    expect(readLegendaryTuningIncreaseStat("item-1", 5, profile)).toBeUndefined();
+  });
 });
