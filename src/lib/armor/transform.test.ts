@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { DestinyInventoryItemDefinition, DestinyProfileResponse } from "bungie-api-ts/destiny2";
+import { STAT_TUNING_PLUGS } from "./tuning";
 
 const SOCKET_CATEGORY_DEFS: Record<number, { displayProperties: { name: string } }> = {
   9001: { displayProperties: { name: "ARMOR MODS" } },
@@ -53,5 +54,44 @@ describe("readExoticPerks", () => {
     const perks = readExoticPerks("item-1", SOLIPSISM_DEFINITION, profile);
 
     expect(perks.map((p) => p.name)).toEqual(["Perk A", "Perk B", "Perk C", "Perk D"]);
+  });
+});
+
+describe("readLegendaryTuningIncreaseStat", () => {
+  function makeProfileWithReusablePlugs(
+    plugs: { plugItemHash: number; canInsert: boolean }[]
+  ): DestinyProfileResponse {
+    return {
+      itemComponents: {
+        reusablePlugs: { data: { "item-1": { plugs: { 5: plugs } } } },
+      },
+    } as unknown as DestinyProfileResponse;
+  }
+
+  it("returns the single increase stat shared by all insertable directional plugs", async () => {
+    const { readLegendaryTuningIncreaseStat } = await import("./transform");
+    const disciplinePlugs = Object.entries(STAT_TUNING_PLUGS)
+      .filter(([, v]) => v.increasedStat === "discipline")
+      .map(([hash]) => ({ plugItemHash: Number(hash), canInsert: true }));
+    const profile = makeProfileWithReusablePlugs(disciplinePlugs);
+
+    expect(readLegendaryTuningIncreaseStat("item-1", 5, profile)).toBe("discipline");
+  });
+
+  it("ignores plugs that can't actually be inserted", async () => {
+    const { readLegendaryTuningIncreaseStat } = await import("./transform");
+    const [hash] = Object.entries(STAT_TUNING_PLUGS)[0];
+    const profile = makeProfileWithReusablePlugs([
+      { plugItemHash: Number(hash), canInsert: false },
+    ]);
+
+    expect(readLegendaryTuningIncreaseStat("item-1", 5, profile)).toBeUndefined();
+  });
+
+  it("returns undefined when no live reusable-plugs data exists for this socket", async () => {
+    const { readLegendaryTuningIncreaseStat } = await import("./transform");
+    const profile = { itemComponents: { reusablePlugs: { data: {} } } } as unknown as DestinyProfileResponse;
+
+    expect(readLegendaryTuningIncreaseStat("item-1", 5, profile)).toBeUndefined();
   });
 });

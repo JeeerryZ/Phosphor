@@ -7,9 +7,10 @@ import {
   type ArmorInventory,
   type ArmorItem,
   type ArmorSlot,
+  type ArmorStatName,
   type ArmorStats,
 } from "./types";
-import { readArmorTuning, type ArmorTuning } from "./tuning";
+import { readArmorTuning, STAT_TUNING_PLUGS, type ArmorTuning } from "./tuning";
 
 const BUCKET_TO_SLOT = new Map<number, ArmorSlot>(
   Object.entries(ARMOR_BUCKET_HASHES).map(([slot, hash]) => [hash, slot as ArmorSlot])
@@ -19,6 +20,7 @@ const BUCKET_TO_SLOT = new Map<number, ArmorSlot>(
 const GENERAL_MOD_SOCKET_TYPE = 1718047805;
 
 const TIER_EXOTIC = 6;
+const TIER_LEGENDARY = 5;
 
 /** Display name of the socket category holding an exotic class item's real (non-cosmetic) perks. */
 const ARMOR_PERKS_CATEGORY_NAME = "ARMOR PERKS";
@@ -60,6 +62,30 @@ export function readExoticPerks(
   }
 
   return perks;
+}
+
+/**
+ * Legendary armor's tuning socket lists the same 30-plug superset in its static manifest
+ * definition for every item -- Bungie narrows it per-instance via the live
+ * `ItemReusablePlugs` profile component instead. Returns the single stat every insertable
+ * directional plug agrees on increasing, or undefined if that can't be determined (no live
+ * data, or -- unexpectedly -- more than one distinct increase stat).
+ */
+export function readLegendaryTuningIncreaseStat(
+  itemInstanceId: string,
+  tuningSocketIndex: number,
+  profile: DestinyProfileResponse
+): ArmorStatName | undefined {
+  const livePlugs = profile.itemComponents.reusablePlugs.data?.[itemInstanceId]?.plugs[tuningSocketIndex] ?? [];
+  const increaseStats = new Set<ArmorStatName>();
+
+  for (const plug of livePlugs) {
+    if (!plug.canInsert) continue;
+    const directional = STAT_TUNING_PLUGS[plug.plugItemHash];
+    if (directional) increaseStats.add(directional.increasedStat);
+  }
+
+  return increaseStats.size === 1 ? [...increaseStats][0] : undefined;
 }
 
 function buildStats(itemInstanceId: string | undefined, profile: DestinyProfileResponse): ArmorStats {
@@ -142,6 +168,11 @@ function transformItem(
       ? readExoticPerks(item.itemInstanceId, definition, profile)
       : undefined;
 
+  const legendaryTuningIncreaseStat =
+    tierType === TIER_LEGENDARY && tuningSocketIndex !== undefined
+      ? readLegendaryTuningIncreaseStat(item.itemInstanceId, tuningSocketIndex, profile)
+      : undefined;
+
   return {
     itemInstanceId: item.itemInstanceId,
     itemHash: item.itemHash,
@@ -159,6 +190,7 @@ function transformItem(
     isMasterworked,
     location,
     exoticPerks: exoticPerks?.length ? exoticPerks : undefined,
+    legendaryTuningIncreaseStat,
   };
 }
 

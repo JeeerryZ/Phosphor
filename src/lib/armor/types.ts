@@ -58,6 +58,13 @@ export interface ArmorItem {
   /** Index of the general stat-mod socket (enhancements.v2_general) within this item's socket array, if present. */
   statModSocketIndex?: number;
   /**
+   * For legendary (non-exotic) armor with a Tier 5 tuning socket: the one stat this
+   * specific item instance is allowed to increase via tuning (the decrease stat is freely
+   * chosen among the other 5). Undefined for exotics (free-choice) and for legendary items
+   * where this couldn't be determined from live plug data.
+   */
+  legendaryTuningIncreaseStat?: ArmorStatName;
+  /**
    * Exotic perks extracted from sockets — only populated for exotic class items,
    * where the two randomly-rolled perks are the key differentiator between copies.
    */
