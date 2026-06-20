@@ -74,7 +74,17 @@ function rankCandidates(items: ArmorItem[]): SlotCandidate[] {
     }
   }
 
-  return topN.map((item) => ({ item, stats: item.stats, hasTuning: item.gearTier === 5 }));
+  return topN.map((item) => {
+    const isExotic = item.tierType === 6;
+    const isLegendaryWithFixedStat = !isExotic && item.legendaryTuningIncreaseStat !== undefined;
+    const canTune = item.gearTier === 5 && (isExotic || isLegendaryWithFixedStat);
+    return {
+      item,
+      stats: item.stats,
+      hasTuning: canTune,
+      allowedIncreaseStats: !canTune ? [] : isExotic ? ARMOR_STAT_ORDER : [item.legendaryTuningIncreaseStat!],
+    };
+  });
 }
 
 /** Builds the per-slot loadout, assigning each tuned slot's stats/tuning from `tuningAssignment` in slot order. */
@@ -275,7 +285,12 @@ export async function computeOptimizerQuery(
 
   for (const slot of ALL_SLOTS) {
     if (exotic && slot === exotic.slot) {
-      itemsBySlot[slot] = [{ item: exotic, stats: exotic.stats, hasTuning: exotic.gearTier === 5 }];
+      itemsBySlot[slot] = [{
+        item: exotic,
+        stats: exotic.stats,
+        hasTuning: exotic.gearTier === 5,
+        allowedIncreaseStats: exotic.gearTier === 5 ? ARMOR_STAT_ORDER : [],
+      }];
       continue;
     }
 

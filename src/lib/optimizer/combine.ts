@@ -1,5 +1,5 @@
 import { ARMOR_BUCKET_HASHES } from "@/lib/armor/types";
-import type { ArmorItem, ArmorSlot } from "@/lib/armor/types";
+import type { ArmorItem, ArmorSlot, ArmorStatName } from "@/lib/armor/types";
 import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
 import { paretoFrontier } from "./pareto";
 import { addVectors, dedupeByStats, zeroVector, type StatVector } from "./vectors";
@@ -10,8 +10,11 @@ export const ALL_SLOTS = Object.keys(ARMOR_BUCKET_HASHES) as ArmorSlot[];
 export interface SlotCandidate {
   item: ArmorItem;
   stats: StatVector;
-  /** True if this item has a Tier 5 tuning socket (`item.gearTier === 5`). */
+  /** True if this item has a Tier 5 tuning socket (`item.gearTier === 5`) AND tuning is actually usable (see allowedIncreaseStats). */
   hasTuning: boolean;
+  /** Stats this candidate may increase via tuning. All 6 for exotics (free choice); a single
+   *  fixed stat for legendary items where it's known; empty if unknown/unusable. */
+  allowedIncreaseStats: ArmorStatName[];
 }
 
 export interface ItemCombination {

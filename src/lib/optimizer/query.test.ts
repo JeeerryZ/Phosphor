@@ -178,7 +178,7 @@ describe("buildResults: slot-count feasibility filter", () => {
       location: "vault",
     };
     const frontier: ItemCombination[][] = Array.from({ length: MAX_TUNED_SLOTS + 1 }, () => []);
-    frontier[0] = [{ choices: { helmet: { item, stats, hasTuning: false } }, stats, tunedCount: 0 }];
+    frontier[0] = [{ choices: { helmet: { item, stats, hasTuning: false, allowedIncreaseStats: [] } }, stats, tunedCount: 0 }];
     return frontier;
   }
 

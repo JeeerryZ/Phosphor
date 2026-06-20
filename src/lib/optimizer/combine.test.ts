@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
+import { ARMOR_STAT_ORDER } from "@/styles/theme";
 import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
 import { ALL_SLOTS, selectItemCombinations, type SlotCandidate } from "./combine";
 import { zeroVector } from "./vectors";
@@ -20,7 +21,7 @@ function makeCandidate(slot: ArmorSlot, name: string, stats: ArmorStats, hasTuni
     isMasterworked: true,
     location: "vault",
   };
-  return { item, stats, hasTuning };
+  return { item, stats, hasTuning, allowedIncreaseStats: hasTuning ? ARMOR_STAT_ORDER : [] };
 }
 
 describe("selectItemCombinations", () => {
@@ -85,5 +86,19 @@ describe("selectItemCombinations", () => {
     for (const bucket of buckets) {
       expect(bucket).toHaveLength(0);
     }
+  });
+
+  it("carries each candidate's allowedIncreaseStats through to the resulting combination", () => {
+    const itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>> = {};
+    for (const slot of ALL_SLOTS) {
+      const candidate = makeCandidate(slot, `${slot}-a`, zeroVector(), slot === "helmet");
+      candidate.allowedIncreaseStats = slot === "helmet" ? ["discipline"] : [];
+      itemsBySlot[slot] = [candidate];
+    }
+
+    const buckets = selectItemCombinations(itemsBySlot);
+
+    expect(buckets[1]).toHaveLength(1);
+    expect(buckets[1][0].choices.helmet?.allowedIncreaseStats).toEqual(["discipline"]);
   });
 });
