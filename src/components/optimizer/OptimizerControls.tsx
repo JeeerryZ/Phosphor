@@ -25,10 +25,13 @@ interface OptimizerControlsProps {
   onMasterworkOnlyChange?: (value: boolean) => void;
   fragmentBonuses: ArmorStats;
   onFragmentBonusChange: (stat: ArmorStatName, value: number) => void;
+  onImportFragments: () => void;
+  importFragmentsState: "idle" | "loading" | "error";
   lockedItems: Partial<Record<ArmorSlot, ArmorItem>>;
   onUnlockSlot: (slot: ArmorSlot) => void;
 }
 
+const FRAG_BONUS_MIN = -30;
 const FRAG_BONUS_MAX = 30;
 const FRAG_BONUS_STEP = 5;
 
@@ -41,6 +44,8 @@ export function OptimizerControls({
   onMasterworkOnlyChange,
   fragmentBonuses,
   onFragmentBonusChange,
+  onImportFragments,
+  importFragmentsState,
   lockedItems,
   onUnlockSlot,
 }: OptimizerControlsProps) {
@@ -89,6 +94,16 @@ export function OptimizerControls({
             <span className="text-accent">+{totalFragBonus}</span>
           )}
         </button>
+
+        {/* Import fragment bonuses from equipped subclass */}
+        <button
+          type="button"
+          onClick={onImportFragments}
+          disabled={importFragmentsState === "loading"}
+          className="text-[10px] uppercase tracking-widest border border-border px-2 py-0.5 transition-colors cursor-pointer hover:border-border-active hover:text-fg-dim text-fg-muted disabled:opacity-50 disabled:cursor-wait"
+        >
+          {importFragmentsState === "loading" ? "Importing…" : importFragmentsState === "error" ? "Failed — Retry" : "Import from equipped"}
+        </button>
       </div>
 
       {/* Fragment bonus section */}
@@ -102,19 +117,25 @@ export function OptimizerControls({
             const color = ARMOR_STAT_COLORS[stat];
             return (
               <div key={stat} className="flex items-center gap-3">
-                <span className="w-20 shrink-0 text-[10px] uppercase tracking-widest" style={{ color: bonus > 0 ? color : "var(--color-fg-muted)" }}>
+                <span
+                  className="w-20 shrink-0 text-[10px] uppercase tracking-widest"
+                  style={{ color: bonus > 0 ? color : bonus < 0 ? "var(--color-error)" : "var(--color-fg-muted)" }}
+                >
                   {ARMOR_STAT_SHORT[stat]}
                 </span>
                 <button
                   type="button"
-                  disabled={bonus <= 0}
-                  onClick={() => onFragmentBonusChange(stat, Math.max(0, bonus - FRAG_BONUS_STEP))}
+                  disabled={bonus <= FRAG_BONUS_MIN}
+                  onClick={() => onFragmentBonusChange(stat, Math.max(FRAG_BONUS_MIN, bonus - FRAG_BONUS_STEP))}
                   className="h-5 w-5 border border-border text-[10px] text-fg-muted hover:border-border-active hover:text-fg-dim disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 >
                   −
                 </button>
-                <span className="w-6 text-center text-xs tabular-nums" style={{ color: bonus > 0 ? color : "var(--color-fg-muted)" }}>
-                  {bonus > 0 ? `+${bonus}` : "0"}
+                <span
+                  className="w-6 text-center text-xs tabular-nums"
+                  style={{ color: bonus > 0 ? color : bonus < 0 ? "var(--color-error)" : "var(--color-fg-muted)" }}
+                >
+                  {bonus > 0 ? `+${bonus}` : bonus}
                 </span>
                 <button
                   type="button"
