@@ -236,14 +236,18 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
 
   const handleImportFragments = useCallback(async () => {
     if (!activeCharacterId) return;
+    const requestId = ++requestIdRef.current;
     setImportFragmentsState("loading");
     try {
       const response = await fetch(`/api/loadout/fragments?characterId=${activeCharacterId}`);
       if (!response.ok) throw new Error("Import failed");
       const data = (await response.json()) as { stats: ArmorStats };
+      if (requestIdRef.current !== requestId) return;
       setFragmentBonuses(data.stats);
       setImportFragmentsState("idle");
-    } catch {
+    } catch (err) {
+      if (requestIdRef.current !== requestId) return;
+      console.error("Failed to import fragment stats:", err);
       setImportFragmentsState("error");
       setTimeout(() => setImportFragmentsState("idle"), 3000);
     }
