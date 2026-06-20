@@ -2,6 +2,7 @@ import type {
   DestinyInventoryItemDefinition,
   DestinyStatDefinition,
   DestinySocketTypeDefinition,
+  DestinySocketCategoryDefinition,
   DestinyManifestComponentName,
   DestinyDefinitionFrom,
 } from "bungie-api-ts/destiny2";
@@ -40,4 +41,8 @@ export function getStatDefinition(hash: number): DestinyStatDefinition | undefin
 
 export function getSocketTypeDefinition(hash: number): DestinySocketTypeDefinition | undefined {
   return getDefinition("DestinySocketTypeDefinition", hash);
+}
+
+export function getSocketCategoryDefinition(hash: number): DestinySocketCategoryDefinition | undefined {
+  return getDefinition("DestinySocketCategoryDefinition", hash);
 }

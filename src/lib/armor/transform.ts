@@ -1,5 +1,5 @@
-import type { DestinyItemComponent, DestinyProfileResponse } from "bungie-api-ts/destiny2";
-import { getItemDefinition } from "../manifest/definitions";
+import type { DestinyInventoryItemDefinition, DestinyItemComponent, DestinyProfileResponse } from "bungie-api-ts/destiny2";
+import { getItemDefinition, getSocketCategoryDefinition } from "../manifest/definitions";
 import {
   ARMOR_BUCKET_HASHES,
   ARMOR_STAT_HASHES,
@@ -9,8 +9,7 @@ import {
   type ArmorSlot,
   type ArmorStats,
 } from "./types";
-import { readArmorTuning, STAT_TUNING_PLUGS, BALANCED_TUNING_PLUG_HASH, EMPTY_TUNING_PLUG_HASH, type ArmorTuning } from "./tuning";
-import { STAT_MOD_PLUG_HASHES } from "../bungie/loadout";
+import { readArmorTuning, type ArmorTuning } from "./tuning";
 
 const BUCKET_TO_SLOT = new Map<number, ArmorSlot>(
   Object.entries(ARMOR_BUCKET_HASHES).map(([slot, hash]) => [hash, slot as ArmorSlot])
@@ -21,32 +20,33 @@ const GENERAL_MOD_SOCKET_TYPE = 1718047805;
 
 const TIER_EXOTIC = 6;
 
-/**
- * Set of all "technical" plug hashes that are never player-facing exotic perks:
- * T5 tuning plugs, stat mods, and the balanced/empty tuning sentinels.
- */
-const TECHNICAL_PLUG_HASHES: Set<number> = new Set([
-  ...Object.keys(STAT_TUNING_PLUGS).map(Number),
-  BALANCED_TUNING_PLUG_HASH,
-  EMPTY_TUNING_PLUG_HASH,
-  ...Object.values(STAT_MOD_PLUG_HASHES),
-]);
+/** Display name of the socket category holding an exotic class item's real (non-cosmetic) perks. */
+const ARMOR_PERKS_CATEGORY_NAME = "ARMOR PERKS";
 
 /**
- * Extracts the two randomly-rolled exotic perks from an exotic class item's sockets.
- * Returns up to 2 perks — items with both a name and description that aren't technical plugs.
+ * Extracts the randomly-rolled exotic perks from a class item's "ARMOR PERKS" socket
+ * categories (there can be more than one such category, and more than 2 perk sockets
+ * total — observed as 4, split across two categories, on every known exotic class item).
+ * Reading by category membership (rather than scanning all sockets with a blacklist)
+ * avoids picking up cosmetic sockets (shaders, ornaments) that also have a name and
+ * description and would otherwise be scanned first.
  */
-function readExoticPerks(
+export function readExoticPerks(
   itemInstanceId: string,
+  definition: DestinyInventoryItemDefinition,
   profile: DestinyProfileResponse
 ): { name: string; description: string; icon: string }[] {
   const sockets = profile.itemComponents.sockets.data?.[itemInstanceId]?.sockets ?? [];
+  const perkSocketIndexes = (definition.sockets?.socketCategories ?? [])
+    .filter((category) => getSocketCategoryDefinition(category.socketCategoryHash)?.displayProperties.name === ARMOR_PERKS_CATEGORY_NAME)
+    .flatMap((category) => category.socketIndexes ?? [])
+    .sort((a, b) => a - b);
+
   const perks: { name: string; description: string; icon: string }[] = [];
 
-  for (const socket of sockets) {
-    if (perks.length >= 2) break;
-    const plugHash = socket.plugHash;
-    if (!plugHash || TECHNICAL_PLUG_HASHES.has(plugHash)) continue;
+  for (const index of perkSocketIndexes) {
+    const plugHash = sockets[index]?.plugHash;
+    if (!plugHash) continue;
 
     const plugDef = getItemDefinition(plugHash);
     if (!plugDef) continue;
@@ -139,7 +139,7 @@ function transformItem(
 
   const exoticPerks =
     tierType === TIER_EXOTIC && slot === "classItem"
-      ? readExoticPerks(item.itemInstanceId, profile)
+      ? readExoticPerks(item.itemInstanceId, definition, profile)
       : undefined;
 
   return {
