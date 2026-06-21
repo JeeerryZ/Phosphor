@@ -176,6 +176,11 @@ describe("enumerateBoostCombinations", () => {
   it("yields nothing if any slot's domain is empty", () => {
     expect([...enumerateBoostCombinations([["discipline"], []])]).toEqual([]);
   });
+
+  it("yields exactly one combination when every domain has a single fixed stat (all-legendary case)", () => {
+    const results = [...enumerateBoostCombinations([["discipline"], ["mobility"], ["resilience"]])];
+    expect(results).toEqual([["discipline", "mobility", "resilience"]]);
+  });
 });
 
 describe("buildResults: slot-count feasibility filter", () => {

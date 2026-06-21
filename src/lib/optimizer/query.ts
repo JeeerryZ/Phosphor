@@ -151,7 +151,9 @@ export interface BuildResultsOutput {
  * threshold (excluding the stat being boosted on that same item). This models the actual player
  * decision: the -5 always goes to an unused stat, so T5 tuning is effectively a free +5.
  *
- * Space: C(tunedCount + 5, 5) ≤ 252 boost distributions per combo — no Pareto needed.
+ * Space: the product of each tuned slot's own allowed-stat domain size (1 for legendary
+ * items with a known fixed increase stat, 6 for exotics) — at most 6^tunedCount, but
+ * typically far smaller since most tuned slots in a combo are legendary.
  */
 export async function buildResults(
   itemSelectionFrontier: ItemCombination[][],
