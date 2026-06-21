@@ -177,6 +177,7 @@ describe("legendary tuning respects the item's fixed increase stat", () => {
     const { results } = await computeOptimizerQuery(exotic, candidates, { thresholds: zeroVector() });
 
     expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.loadout.gauntlets?.tuning.kind === "directional")).toBe(true);
     for (const result of results) {
       const gauntletsChoice = result.loadout.gauntlets;
       if (gauntletsChoice?.tuning.kind === "directional") {
