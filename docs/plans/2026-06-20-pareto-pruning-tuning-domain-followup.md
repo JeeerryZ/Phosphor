@@ -1,8 +1,32 @@
 # Follow-up: Pareto pruning isn't tuning-domain-aware
 
-**Status:** Known limitation, not yet scheduled. Filed alongside
-`2026-06-20-legendary-tuning-fixed-stat-design.md` (the fix this follow-up was discovered
-during review of).
+**Status:** Confirmed via characterization test (`src/lib/optimizer/combine.test.ts`,
+`"[characterization] collapses two same-stat candidates with different allowedIncreaseStats
+to one"`), not yet scheduled. Filed alongside `2026-06-20-legendary-tuning-fixed-stat-design.md`
+(the fix this follow-up was discovered during review of).
+
+## Confirmed finding (2026-06-21)
+
+Built two `SlotCandidate`s for the same slot with **identical accumulated stats** but
+different `allowedIncreaseStats` (`["discipline"]` vs. `["resilience"]`), ran them through
+`selectItemCombinations`, and inspected the `tunedCount=1` bucket: **only one survives**.
+
+The collapse happens immediately, at the very first slot fold — not as a rare aggregate
+coincidence after combining all 5 slots. `dedupeByStats` runs after *every* slot is folded
+in (`selectItemCombinations`'s loop calls `paretoFrontier(dedupeByStats(combos))` once per
+slot), and since both candidates have `tunedCount=1` and an identical `vectorKey(stats)` the
+moment the helmet slot alone is processed, the second one is discarded right there —
+*before* the other 4 slots are even considered. The survivor is whichever candidate appears
+first in that slot's candidate list (`dedupeByStats`'s documented first-occurrence-wins
+behavior).
+
+**Practical implication:** this isn't a rare "two combos happen to sum to the same total"
+edge case — it triggers on *any* two same-stat-roll legendary items in the same slot with
+different fixed tuning stats, which is plausible in a real vault (duplicate stat rolls on
+legendary armor are common, especially after enough farming). The real-world impact depends
+on how often a player's actual vault contains such near-duplicate pairs in the same slot and
+whether the discarded one would have reached a better tuned result than the survivor — that
+part still isn't measured (would require real profile data, not synthetic test fixtures).
 
 ## The gap
 
@@ -39,11 +63,12 @@ and not in scope for the bug that was actually reported.
 
 ## Suggested next step
 
-Before scheduling a fix, validate real-world impact: construct a test with two legendary
-candidates in the same slot that have identical base stats but different
-`legendaryTuningIncreaseStat` values, confirm whether `selectItemCombinations` actually
-drops one of them today, and assess whether the lost combo would have produced a
-meaningfully better result. If the impact is negligible in practice (e.g. because items with
-truly identical stat rolls but different tuning-favored stats are rare in a typical vault),
-this may not be worth the complexity of fixing. If it's not negligible, brainstorm a design
+The mechanism is now confirmed (see above) — what's still unmeasured is real-world
+frequency and impact: how often do actual player vaults contain same-slot legendary pairs
+with matching stat rolls but different fixed tuning stats, and when they do, does the
+discarded combo actually reach a meaningfully better tuned result than the survivor? That
+requires real profile data, not synthetic fixtures — e.g. instrumenting `buildCandidatesBySlot`
+or `selectItemCombinations` temporarily to log collision counts against a real vault, or
+asking a few players to report on a sample of their own armor. If frequency/impact turns out
+to be negligible, this may not be worth the complexity of fixing. If not, brainstorm a design
 for incorporating tuning domain into the pruning key before implementing.

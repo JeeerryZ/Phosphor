@@ -100,4 +100,35 @@ describe("selectItemCombinations", () => {
     expect(buckets[1]).toHaveLength(1);
     expect(buckets[1][0].choices.helmet?.allowedIncreaseStats).toEqual(["discipline"]);
   });
+
+  // Characterization test for the gap tracked in
+  // docs/plans/2026-06-20-pareto-pruning-tuning-domain-followup.md: dedupeByStats/paretoFrontier
+  // key only on accumulated `stats`, not on `allowedIncreaseStats`. Two legendary candidates in
+  // the same slot with identical stats but different fixed tuning stats are therefore
+  // indistinguishable to the pruning step, even though they lead to genuinely different
+  // downstream tuning outcomes in buildResults's enumerateBoostCombinations.
+  it("[characterization] collapses two same-stat candidates with different allowedIncreaseStats to one", () => {
+    const identicalStats = { ...zeroVector(), mobility: 10, resilience: 10 };
+    const helmetDiscipline = makeCandidate("helmet", "helmet-discipline", identicalStats, true);
+    helmetDiscipline.allowedIncreaseStats = ["discipline"];
+    const helmetResilience = makeCandidate("helmet", "helmet-resilience", identicalStats, true);
+    helmetResilience.allowedIncreaseStats = ["resilience"];
+
+    const itemsBySlot: Partial<Record<ArmorSlot, SlotCandidate[]>> = {
+      helmet: [helmetDiscipline, helmetResilience],
+    };
+    for (const slot of ALL_SLOTS) {
+      if (slot === "helmet") continue;
+      itemsBySlot[slot] = [makeCandidate(slot, `${slot}-a`, zeroVector())];
+    }
+
+    const buckets = selectItemCombinations(itemsBySlot);
+
+    // Observed behavior: only ONE of the two helmets survives -- dedupeByStats's first-occurrence-
+    // wins semantics collapse them at the very first slot fold (both have tunedCount=1 and
+    // identical accumulated stats). This is the gap, not the desired behavior -- see the
+    // follow-up doc for next steps.
+    expect(buckets[1]).toHaveLength(1);
+    expect(["helmet-discipline", "helmet-resilience"]).toContain(buckets[1][0].choices.helmet?.item.name);
+  });
 });
