@@ -160,6 +160,32 @@ describe("computeOptimizerQuery", () => {
   });
 });
 
+describe("legendary tuning respects the item's fixed increase stat", () => {
+  it("never produces a tuning assignment that increases a stat other than the item's fixed one", async () => {
+    const exotic = makeItem("helmet", "Exotic Helmet", zeroVector(), { tierType: 6 });
+    const fixedDisciplineGauntlets: ArmorItem = {
+      ...makeItem("gauntlets", "Tuned Gauntlets", { ...zeroVector(), mobility: 10 }, { tierType: 5, gearTier: 5 }),
+      legendaryTuningIncreaseStat: "discipline",
+    };
+    const candidates: Partial<Record<ArmorSlot, ArmorItem[]>> = {
+      gauntlets: [fixedDisciplineGauntlets],
+      chest: [makeItem("chest", "Chest", { ...zeroVector(), recovery: 10 })],
+      legs: [makeItem("legs", "Legs", { ...zeroVector(), intellect: 10 })],
+      classItem: [makeItem("classItem", "Class Item", { ...zeroVector(), strength: 10 })],
+    };
+
+    const { results } = await computeOptimizerQuery(exotic, candidates, { thresholds: zeroVector() });
+
+    expect(results.length).toBeGreaterThan(0);
+    for (const result of results) {
+      const gauntletsChoice = result.loadout.gauntlets;
+      if (gauntletsChoice?.tuning.kind === "directional") {
+        expect(gauntletsChoice.tuning.increasedStat).toBe("discipline");
+      }
+    }
+  });
+});
+
 describe("enumerateBoostCombinations", () => {
   it("yields the Cartesian product across asymmetric per-slot domains", () => {
     const results = [...enumerateBoostCombinations([["discipline"], ["mobility", "resilience"]])];
