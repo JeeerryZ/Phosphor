@@ -7,7 +7,6 @@ import type { ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { buildCandidatesBySlot, findItemByInstanceId } from "@/lib/optimizer/candidates";
 import { computeOptimizerQuery } from "@/lib/optimizer";
 import { zeroVector } from "@/lib/optimizer/vectors";
-import { getOptimizerPoolStats } from "@/lib/optimizer/worker-pool";
 
 interface ComputeRequestBody {
   exoticItemInstanceId?: string;
@@ -55,11 +54,10 @@ export async function POST(request: Request) {
     const t0 = Date.now();
     const { results, perStatMax, debug: queryDebug } = await computeOptimizerQuery(exotic, candidatesBySlot, { thresholds });
     const elapsedMs = Date.now() - t0;
-    const pool = getOptimizerPoolStats();
     return NextResponse.json({
       results,
       perStatMax,
-      debug: { elapsedMs, resultCount: results.length, ...queryDebug, pool },
+      debug: { elapsedMs, resultCount: results.length, ...queryDebug },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown optimizer error";

@@ -1,7 +1,7 @@
 import type { ArmorItem, ArmorSlot, ArmorStats, ArmorStatName } from "@/lib/armor/types";
 import type { ArmorTuning } from "@/lib/armor/tuning";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
-import { ALL_SLOTS, selectItemCombinations, type ItemCombination, type SlotCandidate } from "./combine";
+import { ALL_SLOTS, MAX_TUNED_SLOTS, selectItemCombinations, type ItemCombination, type SlotCandidate } from "./combine";
 import { tuningDeltaVector } from "./tuning-variants";
 import { addVectors, zeroVector, type StatVector } from "./vectors";
 
@@ -25,7 +25,6 @@ export interface OptimizerResult {
 /** Maximum number of results returned per query. */
 const RESULT_LIMIT = 50;
 
-const MAX_TUNED_SLOTS = 5;
 const TIER_KEY_OFFSET = 32;
 const TIER_KEY_RADIX = 128;
 const MOD_SLOTS = 5;

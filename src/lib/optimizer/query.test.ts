@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
-import type { ItemCombination } from "./combine";
-import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
+import { MAX_TUNED_SLOTS, type ItemCombination } from "./combine";
 import { buildResults, computeOptimizerQuery, enumerateBoostCombinations } from "./query";
 import { zeroVector } from "./vectors";
 

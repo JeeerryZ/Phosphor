@@ -1,11 +1,13 @@
 import { ARMOR_BUCKET_HASHES } from "@/lib/armor/types";
 import type { ArmorItem, ArmorSlot, ArmorStatName } from "@/lib/armor/types";
-import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
 import { paretoFrontier } from "./pareto";
 import { addVectors, dedupeByStats, zeroVector, type StatVector } from "./vectors";
 
 /** Canonical iteration order for the 5 armor slots. */
 export const ALL_SLOTS = Object.keys(ARMOR_BUCKET_HASHES) as ArmorSlot[];
+
+/** A loadout has exactly 5 armor slots, so at most 5 items can have a tuning socket. */
+export const MAX_TUNED_SLOTS = 5;
 
 export interface SlotCandidate {
   item: ArmorItem;
@@ -28,7 +30,7 @@ export interface ItemCombination {
  * Cartesian-combines one candidate per slot (from `itemsBySlot`, over `ALL_SLOTS`) into
  * `ItemCombination`s, grouped by `tunedCount`. After each slot, each `tunedCount` bucket is
  * Pareto-pruned separately, since different buckets are later crossed with different
- * tuning-adjustment frontiers and aren't directly comparable.
+ * per-slot boost-stat domains in `buildResults` and aren't directly comparable.
  *
  * Returns an array indexed by `tunedCount` (0..MAX_TUNED_SLOTS). If any slot has no candidates,
  * every bucket is empty.

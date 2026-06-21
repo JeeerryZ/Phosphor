@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { OptimizerPoolStats } from "@/lib/optimizer/worker-pool";
 
 export interface OptimizerDebugInfo {
   elapsedMs: number;
@@ -10,7 +9,6 @@ export interface OptimizerDebugInfo {
   boostDistributionsChecked: number;
   feasibleCombinations: number;
   uniqueKeys: number;
-  pool: OptimizerPoolStats;
 }
 
 function fmt(n: number): string {
@@ -57,8 +55,6 @@ export function OptimizerDebugOverlay({ info }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const { pool } = info;
-
   return (
     <div
       className="fixed right-4 bottom-4 z-50 w-52 border border-border select-none"
@@ -97,15 +93,6 @@ export function OptimizerDebugOverlay({ info }: Props) {
 
           <Row label="Distributions" value={fmt(info.boostDistributionsChecked)} />
           <Row label="Combos" value={fmt(info.combosEvaluated)} />
-
-          <Divider />
-
-          <Row label="Threads" value={`${pool.liveThreads} / ${pool.maxThreads}`} />
-          <Row label="Utilization" value={`${Math.round(pool.utilization * 100)}%`} dim={pool.utilization < 0.3} />
-          <Row label="Completed" value={fmt(pool.completed)} dim />
-          {pool.queueSize > 0 && (
-            <Row label="Queue" value={pool.queueSize} />
-          )}
 
           <Divider />
 

@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { ArmorItem, ArmorSlot, ArmorStats } from "@/lib/armor/types";
 import { ARMOR_STAT_ORDER } from "@/styles/theme";
-import { MAX_TUNED_SLOTS } from "./adjustment-frontier";
-import { ALL_SLOTS, selectItemCombinations, type SlotCandidate } from "./combine";
+import { ALL_SLOTS, MAX_TUNED_SLOTS, selectItemCombinations, type SlotCandidate } from "./combine";
 import { zeroVector } from "./vectors";
 
 function makeCandidate(slot: ArmorSlot, name: string, stats: ArmorStats, hasTuning = false): SlotCandidate {
