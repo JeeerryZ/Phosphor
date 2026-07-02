@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginButton } from "@/components/auth/LoginButton";
 import { PageTransition } from "@/components/ui/PageTransition";
@@ -65,6 +66,12 @@ export default async function Home() {
               <span className="text-accent">Builder</span>
             </h1>
             <span className="text-sm text-fg-muted tracking-widest uppercase">Armor Optimizer</span>
+            <Link
+              href="/ghost-mods"
+              className="ml-auto text-xs uppercase tracking-widest text-fg-muted hover:text-fg transition-colors"
+            >
+              Ghost Advisor →
+            </Link>
           </div>
           <OptimizerClient
             inventory={inventory}
