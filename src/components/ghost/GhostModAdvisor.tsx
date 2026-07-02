@@ -1,9 +1,8 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { solve } from "@/lib/ghost/solver";
-import type { SolverResult, SolverOptions } from "@/lib/ghost/solver";
+import type { SolverResult } from "@/lib/ghost/solver";
 import { ALL_STAT_NAMES, STAT_LABELS } from "@/lib/ghost/mods";
 import { EMPTY_ARMOR_STATS } from "@/lib/armor/types";
 import type { ArmorStatName, ArmorStats } from "@/lib/armor/types";
@@ -13,11 +12,28 @@ export function GhostModAdvisor() {
   const [masterwork, setMasterwork] = useState(false);
   const [statMods, setStatMods] = useState(false);
   const [results, setResults] = useState<SolverResult[] | null>(null);
+  const [solving, setSolving] = useState(false);
   const [debugOpen, setDebugOpen] = useState(true);
+  const workerRef = useRef<Worker | null>(null);
+
+  useEffect(() => () => { workerRef.current?.terminate(); }, []);
 
   function handleSolve() {
-    const options: SolverOptions = { masterwork, statMods };
-    setResults(solve(targets, options));
+    workerRef.current?.terminate();
+    setSolving(true);
+    setResults(null);
+
+    const worker = new Worker(
+      new URL("../../lib/ghost/solver.worker.ts", import.meta.url)
+    );
+    worker.onmessage = (e: MessageEvent<SolverResult[]>) => {
+      setResults(e.data);
+      setSolving(false);
+      worker.terminate();
+      workerRef.current = null;
+    };
+    worker.postMessage({ targets, options: { masterwork, statMods } });
+    workerRef.current = worker;
   }
 
   function setTarget(stat: ArmorStatName, raw: string) {
@@ -73,12 +89,7 @@ export function GhostModAdvisor() {
               onChange={(e) => setMasterwork(e.target.checked)}
               className="accent-[var(--color-accent)]"
             />
-            <span className="text-sm text-fg-dim">
-              Masterwork{" "}
-              <span className="text-fg-muted">
-                (+5 to each stat not covered by that piece&apos;s ghost mod)
-              </span>
-            </span>
+            <span className="text-sm text-fg-dim">Masterwork</span>
           </label>
 
           <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -88,16 +99,15 @@ export function GhostModAdvisor() {
               onChange={(e) => setStatMods(e.target.checked)}
               className="accent-[var(--color-accent)]"
             />
-            <span className="text-sm text-fg-dim">
-              Stat Mods{" "}
-              <span className="text-fg-muted">(+50 total, optimally allocated to cover deficits)</span>
-            </span>
+            <span className="text-sm text-fg-dim">Stat Mods</span>
           </label>
         </div>
       </section>
 
       {/* Solve */}
-      <Button onClick={handleSolve}>Find Best Combination</Button>
+      <Button onClick={handleSolve} disabled={solving}>
+        {solving ? "Computing…" : "Find Best Combination"}
+      </Button>
 
       {/* Results */}
       {results && (
