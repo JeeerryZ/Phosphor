@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils/cn";
 
 const FRAMES = ["\\", "|", "/", "-"] as const;
 
-export function Spinner({ className }: { className?: string }) {
+export function Spinner({ className, label = "loading..." }: { className?: string; label?: string }) {
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export function Spinner({ className }: { className?: string }) {
 
   return (
     <span className={cn("font-mono text-accent text-base", className)}>
-      [{FRAMES[frame]}] loading...
+      [{FRAMES[frame]}] {label}
     </span>
   );
 }
