@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import type { SolverResult } from "@/lib/ghost/solver";
 import { ALL_STAT_NAMES, STAT_LABELS } from "@/lib/ghost/mods";
@@ -36,10 +36,9 @@ export function GhostModAdvisor() {
     workerRef.current = worker;
   }
 
-  function setTarget(stat: ArmorStatName, raw: string) {
-    const val = parseInt(raw, 10);
-    setTargets((prev) => ({ ...prev, [stat]: isNaN(val) ? 0 : val }));
-  }
+  const setTarget = useCallback((stat: ArmorStatName, val: number) => {
+    setTargets((prev) => ({ ...prev, [stat]: Math.max(0, val) }));
+  }, []);
 
   function summarizeAssignments(result: SolverResult): string {
     const counts = new Map<string, { count: number; thirds: string[] }>();
@@ -61,19 +60,38 @@ export function GhostModAdvisor() {
         <h2 className="text-sm uppercase tracking-widest text-fg-muted mb-4">Target Stats</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {ALL_STAT_NAMES.map((stat) => (
-            <label key={stat} className="flex flex-col gap-1">
+            <div key={stat} className="flex flex-col gap-1">
               <span className="text-xs uppercase tracking-widest text-fg-dim">
                 {STAT_LABELS[stat]}
               </span>
-              <input
-                type="number"
-                min={0}
-                value={targets[stat] || ""}
-                onChange={(e) => setTarget(stat, e.target.value)}
-                placeholder="0"
-                className="w-full bg-transparent border border-border px-3 py-2 text-sm text-fg focus:border-border-active focus:outline-none"
-              />
-            </label>
+              <div className="flex border border-border focus-within:border-border-active">
+                <button
+                  type="button"
+                  onClick={() => setTarget(stat, targets[stat] - 5)}
+                  className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-r border-border transition-colors select-none"
+                >
+                  −
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={targets[stat] === 0 ? "" : targets[stat]}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setTarget(stat, isNaN(val) ? 0 : val);
+                  }}
+                  placeholder="0"
+                  className="flex-1 bg-transparent text-center text-sm text-fg focus:outline-none py-2 min-w-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTarget(stat, targets[stat] + 5)}
+                  className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-l border-border transition-colors select-none"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </section>
