@@ -134,7 +134,7 @@ export function GhostModAdvisor() {
           {results.length === 0 ? (
             <p className="text-fg-dim text-sm">No combinations found.</p>
           ) : (
-            results.map((result, ri) => (
+            results.slice(0, 5).map((result, ri) => (
               <div key={ri} className="border border-border p-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-fg-muted">#{ri + 1}</span>
