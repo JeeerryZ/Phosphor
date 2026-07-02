@@ -10,7 +10,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SET BUILDER",
+  title: "PHOSPHOR",
   description: "A Destiny 2 armor optimizer with Tier 5 stat-tuning support.",
 };
 

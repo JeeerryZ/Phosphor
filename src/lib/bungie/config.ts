@@ -29,7 +29,7 @@ export const sessionConfig = {
     return requireEnv("SESSION_SECRET");
   },
   get cookieName() {
-    return process.env.SESSION_COOKIE_NAME || "set-builder-session";
+    return process.env.SESSION_COOKIE_NAME || "phosphor-session";
   },
 };
 

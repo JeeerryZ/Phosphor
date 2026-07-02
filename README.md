@@ -1,4 +1,4 @@
-# Set Builder
+# Phosphor
 
 A Destiny 2 armor optimizer (Next.js + Tailwind + Framer Motion), built in the spirit of
 [d2armorpicker.com](https://d2armorpicker.com/) and [d2armorgenius.com](https://www.d2armorgenius.com/),

@@ -28,8 +28,8 @@ export default async function Home() {
         <PageTransition>
           <p className="text-sm text-fg-muted tracking-[0.3em] uppercase mb-6">Destiny 2</p>
           <h1 className="text-6xl font-bold tracking-tight sm:text-8xl" style={{ fontFamily: "var(--font-sans)" }}>
-            <span className="text-fg">Set</span>
-            <span className="text-accent">Builder</span>
+            <span className="text-fg">Phos</span>
+            <span className="text-accent">phor</span>
           </h1>
           <p className="mt-4 text-base text-fg-dim tracking-widest uppercase">Armor Optimizer · T5 Stat Tuning</p>
           <p className="mx-auto mt-8 max-w-md text-base text-fg-muted leading-relaxed">
@@ -61,14 +61,14 @@ export default async function Home() {
       <PageTransition>
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex items-baseline gap-3">
-            <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-sans)" }}>
-              <span className="text-fg">Set</span>
-              <span className="text-accent">Builder</span>
+            <h1 className="text-xl font-bold text-glow" style={{ fontFamily: "var(--font-sans)" }}>
+              <span className="text-fg">Phos</span>
+              <span className="text-accent">phor</span>
             </h1>
-            <span className="text-sm text-fg-muted tracking-widest uppercase">Armor Optimizer</span>
+            <span className="text-sm text-fg-dim tracking-widest uppercase">Armor Optimizer</span>
             <Link
               href="/ghost-mods"
-              className="ml-auto text-xs uppercase tracking-widest text-fg-muted hover:text-fg transition-colors"
+              className="ml-auto text-xs uppercase tracking-widest text-fg-dim hover:text-fg transition-colors"
             >
               Ghost Advisor →
             </Link>

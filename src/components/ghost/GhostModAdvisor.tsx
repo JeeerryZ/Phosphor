@@ -1,16 +1,60 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type { SolverResult } from "@/lib/ghost/solver";
 import { ALL_STAT_NAMES, STAT_LABELS } from "@/lib/ghost/mods";
 import { EMPTY_ARMOR_STATS } from "@/lib/armor/types";
 import type { ArmorStatName, ArmorStats } from "@/lib/armor/types";
 
+// A single stat can get at most +30 per piece (its ghost mod's primary slot) across
+// 5 pieces = 150, plus T5 tuning's +5/piece (always available, 5 pieces = +25) = 175.
+// Masterwork never raises this — it only buffs stats a piece doesn't already cover.
+// Stat Mods adds one more +50 on top, for a hard ceiling of 225.
+const MAX_STAT_FROM_MODS = 175;
+const MAX_STAT_WITH_STAT_MODS = 225;
+
+// Cross-stat budget: every piece hands out 30+25+20=75 no matter what (guaranteed),
+// T5 tuning always adds a further 5×5=25 (freely assignable, always on), masterwork
+// adds another 5×3=15/piece, and Stat Mods adds a flat +50 pool on top.
+// This is a NECESSARY condition, not sufficient — some mod pairings (e.g. Weapon+Health)
+// don't exist, so certain target combinations can still be unreachable within budget.
+const BASE_BUDGET = 5 * (30 + 25 + 20) + 5 * 5;
+const MASTERWORK_BUDGET_BONUS = 5 * (5 * 3);
+const STAT_MODS_BUDGET_BONUS = 50;
+
+function clampToCapAndBudget(
+  targets: ArmorStats,
+  maxStat: number,
+  totalBudget: number
+): ArmorStats {
+  const next = { ...targets };
+  for (const stat of ALL_STAT_NAMES) {
+    next[stat] = Math.min(maxStat, Math.max(0, next[stat]));
+  }
+  let sum = ALL_STAT_NAMES.reduce((s, k) => s + next[k], 0);
+  while (sum > totalBudget) {
+    let biggest = ALL_STAT_NAMES[0];
+    for (const stat of ALL_STAT_NAMES) {
+      if (next[stat] > next[biggest]) biggest = stat;
+    }
+    if (next[biggest] <= 0) break;
+    next[biggest] -= 5;
+    sum -= 5;
+  }
+  return next;
+}
+
 export function GhostModAdvisor() {
   const [targets, setTargets] = useState<ArmorStats>({ ...EMPTY_ARMOR_STATS });
   const [masterwork, setMasterwork] = useState(false);
   const [statMods, setStatMods] = useState(false);
+  const maxStat = statMods ? MAX_STAT_WITH_STAT_MODS : MAX_STAT_FROM_MODS;
+  const totalBudget =
+    BASE_BUDGET +
+    (masterwork ? MASTERWORK_BUDGET_BONUS : 0) +
+    (statMods ? STAT_MODS_BUDGET_BONUS : 0);
+  const usedBudget = ALL_STAT_NAMES.reduce((s, k) => s + targets[k], 0);
   const [results, setResults] = useState<SolverResult[] | null>(null);
   const [solving, setSolving] = useState(false);
   const [debugOpen, setDebugOpen] = useState(true);
@@ -18,38 +62,77 @@ export function GhostModAdvisor() {
 
   useEffect(() => () => { workerRef.current?.terminate(); }, []);
 
-  function handleSolve() {
-    workerRef.current?.terminate();
-    setSolving(true);
-    setResults(null);
+  // Auto re-solve, debounced, whenever targets or options change — gives a live
+  // preview of what's achievable instead of requiring a manual "solve" click.
+  useEffect(() => {
+    if (usedBudget === 0) return;
+    const timeout = setTimeout(() => {
+      workerRef.current?.terminate();
+      setSolving(true);
 
-    const worker = new Worker(
-      new URL("../../lib/ghost/solver.worker.ts", import.meta.url)
-    );
-    worker.onmessage = (e: MessageEvent<SolverResult[]>) => {
-      setResults(e.data);
-      setSolving(false);
-      worker.terminate();
-      workerRef.current = null;
-    };
-    worker.postMessage({ targets, options: { masterwork, statMods } });
-    workerRef.current = worker;
+      const worker = new Worker(
+        new URL("../../lib/ghost/solver.worker.ts", import.meta.url)
+      );
+      worker.onmessage = (e: MessageEvent<SolverResult[]>) => {
+        setResults(e.data);
+        setSolving(false);
+        worker.terminate();
+        workerRef.current = null;
+      };
+      worker.postMessage({ targets, options: { masterwork, statMods } });
+      workerRef.current = worker;
+    }, 300);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targets, masterwork, statMods]);
+
+  function handleMasterworkChange(checked: boolean) {
+    setMasterwork(checked);
+    const newBudget =
+      BASE_BUDGET + (checked ? MASTERWORK_BUDGET_BONUS : 0) + (statMods ? STAT_MODS_BUDGET_BONUS : 0);
+    setTargets((prev) => clampToCapAndBudget(prev, maxStat, newBudget));
+  }
+
+  function handleStatModsChange(checked: boolean) {
+    setStatMods(checked);
+    const newMax = checked ? MAX_STAT_WITH_STAT_MODS : MAX_STAT_FROM_MODS;
+    const newBudget =
+      BASE_BUDGET + (masterwork ? MASTERWORK_BUDGET_BONUS : 0) + (checked ? STAT_MODS_BUDGET_BONUS : 0);
+    setTargets((prev) => clampToCapAndBudget(prev, newMax, newBudget));
   }
 
   function setTarget(stat: ArmorStatName, val: number) {
-    setTargets((prev) => ({ ...prev, [stat]: Math.max(0, val) }));
+    setTargets((prev) => {
+      const othersSum = ALL_STAT_NAMES.reduce((s, k) => (k === stat ? s : s + prev[k]), 0);
+      const capped = Math.min(maxStat, Math.max(0, val));
+      const withinBudget = Math.max(0, Math.min(capped, totalBudget - othersSum));
+      return { ...prev, [stat]: withinBudget };
+    });
   }
 
   function summarizeAssignments(result: SolverResult): string {
-    const counts = new Map<string, { count: number; thirds: string[] }>();
-    for (const { mod, thirdStat } of result.assignments) {
-      const existing = counts.get(mod.name) ?? { count: 0, thirds: [] };
+    const counts = new Map<
+      string,
+      { count: number; primary: string; secondary: string; thirds: string[] }
+    >();
+    for (const { mod, primaryStat, thirdStat } of result.assignments) {
+      const secondaryStat = primaryStat === mod.statA ? mod.statB : mod.statA;
+      const key = `${mod.name}|${primaryStat}`;
+      const existing = counts.get(key) ?? {
+        count: 0,
+        primary: STAT_LABELS[primaryStat],
+        secondary: STAT_LABELS[secondaryStat],
+        thirds: [],
+      };
       existing.count++;
       existing.thirds.push(STAT_LABELS[thirdStat]);
-      counts.set(mod.name, existing);
+      counts.set(key, existing);
     }
     return Array.from(counts.entries())
-      .map(([name, { count, thirds }]) => `${count}× ${name} (third: ${thirds.join(", ")})`)
+      .map(([key, { count, primary, secondary, thirds }]) => {
+        const name = key.split("|")[0];
+        return `${count}× ${name} (+30 ${primary}, +25 ${secondary}, third: ${thirds.join(", ")})`;
+      })
       .join(" · ");
   }
 
@@ -57,96 +140,101 @@ export function GhostModAdvisor() {
     <div className="space-y-8">
       {/* Target Stats */}
       <section>
-        <h2 className="text-sm uppercase tracking-widest text-fg-muted mb-4">Target Stats</h2>
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-sm uppercase tracking-widest text-fg-dim text-glow">Target Stats</h2>
+          <span
+            className={`text-xs uppercase tracking-widest ${
+              usedBudget >= totalBudget ? "text-[var(--color-warn)]" : "text-fg-dim"
+            }`}
+          >
+            Budget {usedBudget} / {totalBudget}
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {ALL_STAT_NAMES.map((stat) => (
-            <div key={stat} className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-widest text-fg-dim">
-                {STAT_LABELS[stat]}
-              </span>
-              <div className="flex border border-border focus-within:border-border-active">
-                <button
-                  type="button"
-                  onClick={() => setTarget(stat, targets[stat] - 5)}
-                  className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-r border-border transition-colors select-none"
-                >
-                  −
-                </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={targets[stat] === 0 ? "" : targets[stat]}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setTarget(stat, isNaN(val) ? 0 : val);
-                  }}
-                  placeholder="0"
-                  className="flex-1 bg-transparent text-center text-sm text-fg focus:outline-none py-2 min-w-0"
-                />
-                <button
-                  type="button"
-                  onClick={() => setTarget(stat, targets[stat] + 5)}
-                  className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-l border-border transition-colors select-none"
-                >
-                  +
-                </button>
+          {ALL_STAT_NAMES.map((stat) => {
+            const atMax = targets[stat] >= maxStat || usedBudget >= totalBudget;
+            return (
+              <div key={stat} className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-widest text-fg-dim">
+                  {STAT_LABELS[stat]} <span className="text-fg-muted">/ {maxStat}</span>
+                </span>
+                <div className="flex border border-border focus-within:border-border-active">
+                  <button
+                    type="button"
+                    onClick={() => setTarget(stat, targets[stat] - 5)}
+                    className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-r border-border transition-colors select-none cursor-pointer"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={targets[stat] === 0 ? "" : targets[stat]}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setTarget(stat, isNaN(val) ? 0 : val);
+                    }}
+                    placeholder="0"
+                    className="flex-1 bg-transparent text-center text-sm text-fg focus:outline-none py-2 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTarget(stat, targets[stat] + 5)}
+                    disabled={atMax}
+                    className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-l border-border transition-colors select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-fg-muted"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* Options */}
       <section>
-        <h2 className="text-sm uppercase tracking-widest text-fg-muted mb-4">Options</h2>
+        <h2 className="text-sm uppercase tracking-widest text-fg-dim text-glow mb-4">Options</h2>
         <div className="flex flex-col gap-4">
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={masterwork}
-              onChange={(e) => setMasterwork(e.target.checked)}
-              className="accent-[var(--color-accent)]"
-            />
-            <span className="text-sm text-fg-dim">Masterwork</span>
-          </label>
+          <Checkbox
+            label="Masterwork"
+            checked={masterwork}
+            onChange={(e) => handleMasterworkChange(e.target.checked)}
+          />
 
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={statMods}
-              onChange={(e) => setStatMods(e.target.checked)}
-              className="accent-[var(--color-accent)]"
-            />
-            <span className="text-sm text-fg-dim">Stat Mods</span>
-          </label>
+          <Checkbox
+            label="Stat Mods"
+            checked={statMods}
+            onChange={(e) => handleStatModsChange(e.target.checked)}
+          />
         </div>
       </section>
 
-      {/* Solve */}
-      <Button onClick={handleSolve} disabled={solving}>
-        {solving ? "Computing…" : "Find Best Combination"}
-      </Button>
-
-      {/* Results */}
-      {results && (
+      {/* Results — auto-updates live as targets/options change */}
+      {usedBudget > 0 && (
         <section className="space-y-6">
-          <h2 className="text-sm uppercase tracking-widest text-fg-muted">Results</h2>
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-sm uppercase tracking-widest text-fg-dim text-glow">Results</h2>
+            {solving && (
+              <span className="text-xs uppercase tracking-widest text-fg-muted">Computing…</span>
+            )}
+          </div>
 
-          {results.length === 0 ? (
+          {!results ? null : results.length === 0 ? (
             <p className="text-fg-dim text-sm">No combinations found.</p>
           ) : (
             results.slice(0, 5).map((result, ri) => (
               <div key={ri} className="border border-border p-4 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-fg-muted">#{ri + 1}</span>
+                  <span className="text-xs text-fg-dim">#{ri + 1}</span>
                   <span className="text-sm text-fg">{summarizeAssignments(result)}</span>
                 </div>
 
                 {/* Projected vs Target */}
                 <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                  <span className="text-fg-muted uppercase tracking-widest">Stat</span>
-                  <span className="text-fg-muted uppercase tracking-widest">Projected</span>
-                  <span className="text-fg-muted uppercase tracking-widest">Target</span>
+                  <span className="text-fg-dim uppercase tracking-widest">Stat</span>
+                  <span className="text-fg-dim uppercase tracking-widest">Projected</span>
+                  <span className="text-fg-dim uppercase tracking-widest">Target</span>
                   {ALL_STAT_NAMES.map((stat) => {
                     const projected = result.projected[stat];
                     const target = targets[stat];
@@ -165,51 +253,61 @@ export function GhostModAdvisor() {
 
                 {/* Debug breakdown */}
                 <details open={debugOpen} onToggle={(e) => setDebugOpen((e.target as HTMLDetailsElement).open)}>
-                  <summary className="text-xs uppercase tracking-widest text-fg-muted cursor-pointer mb-2">
+                  <summary className="text-xs uppercase tracking-widest text-fg-dim cursor-pointer mb-2">
                     Debug breakdown
                   </summary>
                   <div className="overflow-x-auto">
                     <table className="text-xs w-full border-collapse">
                       <thead>
                         <tr>
-                          <th className="text-left text-fg-muted py-1 pr-4">Source</th>
+                          <th className="text-left text-fg-dim py-1 pr-4">Source</th>
                           {ALL_STAT_NAMES.map((s) => (
-                            <th key={s} className="text-fg-muted py-1 px-2 text-right">
+                            <th key={s} className="text-fg-dim py-1 px-2 text-right">
                               {STAT_LABELS[s]}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {/* Per-piece rows: mod bonuses + optional MW row */}
+                        {/* Per-piece rows: mod bonuses, with masterwork +5 folded into the cell */}
                         {result.debug.map((row, i) => (
-                          <Fragment key={i}>
-                            <tr className="border-t border-border/40">
-                              <td className="text-fg-dim py-1 pr-4">{row.modName}</td>
-                              {ALL_STAT_NAMES.map((s) => (
+                          <tr key={i} className="border-t border-border/40">
+                            <td className="text-fg-dim py-1 pr-4">{row.modName}</td>
+                            {ALL_STAT_NAMES.map((s) => {
+                              const contribution = row.contributions[s];
+                              const mwContribution = masterwork ? row.masterworkContributions[s] : undefined;
+                              return (
                                 <td key={s} className="text-right px-2 py-1 text-fg-dim">
-                                  {row.contributions[s] !== undefined ? `+${row.contributions[s]}` : "—"}
+                                  {contribution !== undefined ? (
+                                    `+${contribution}`
+                                  ) : mwContribution !== undefined ? (
+                                    <span className="text-[var(--color-warn)]">+{mwContribution}</span>
+                                  ) : (
+                                    "—"
+                                  )}
                                 </td>
-                              ))}
-                            </tr>
-                            {masterwork && Object.keys(row.masterworkContributions).length > 0 && (
-                              <tr className="border-t border-border/20 text-fg-muted italic">
-                                <td className="py-1 pr-4 pl-3">↳ MW</td>
-                                {ALL_STAT_NAMES.map((s) => (
-                                  <td key={s} className="text-right px-2 py-1">
-                                    {row.masterworkContributions[s] !== undefined
-                                      ? `+${row.masterworkContributions[s]}`
-                                      : "—"}
-                                  </td>
-                                ))}
-                              </tr>
-                            )}
-                          </Fragment>
+                              );
+                            })}
+                          </tr>
                         ))}
+
+                        {/* T5 tuning allocation row (always available) */}
+                        {Object.keys(result.t5Allocation).length > 0 && (
+                          <tr className="border-t border-border/40 text-fg-dim italic">
+                            <td className="py-1 pr-4">T5 Tuning</td>
+                            {ALL_STAT_NAMES.map((s) => (
+                              <td key={s} className="text-right px-2 py-1">
+                                {result.t5Allocation[s] !== undefined
+                                  ? `+${result.t5Allocation[s]}`
+                                  : "—"}
+                              </td>
+                            ))}
+                          </tr>
+                        )}
 
                         {/* Stat mods allocation row */}
                         {statMods && Object.keys(result.statModAllocation).length > 0 && (
-                          <tr className="border-t border-border/40 text-fg-muted italic">
+                          <tr className="border-t border-border/40 text-fg-dim italic">
                             <td className="py-1 pr-4">Stat Mods</td>
                             {ALL_STAT_NAMES.map((s) => (
                               <td key={s} className="text-right px-2 py-1">
@@ -229,39 +327,6 @@ export function GhostModAdvisor() {
                               {result.projected[s].toFixed(1)}
                             </td>
                           ))}
-                        </tr>
-
-                        {/* Target row */}
-                        <tr className="border-t border-border/40">
-                          <td className="text-fg-muted py-1 pr-4">Target</td>
-                          {ALL_STAT_NAMES.map((s) => (
-                            <td
-                              key={s}
-                              className={`text-right px-2 py-1 ${
-                                result.projected[s] >= targets[s] ? "text-green-400" : "text-red-400"
-                              }`}
-                            >
-                              {targets[s]}
-                            </td>
-                          ))}
-                        </tr>
-
-                        {/* Gap row */}
-                        <tr className="border-t border-border/40">
-                          <td className="text-fg-muted py-1 pr-4">Gap</td>
-                          {ALL_STAT_NAMES.map((s) => {
-                            const gap = targets[s] - result.projected[s];
-                            return (
-                              <td
-                                key={s}
-                                className={`text-right px-2 py-1 ${
-                                  gap <= 0 ? "text-green-400" : "text-red-400"
-                                }`}
-                              >
-                                {gap > 0 ? `−${gap.toFixed(1)}` : `+${Math.abs(gap).toFixed(1)}`}
-                              </td>
-                            );
-                          })}
                         </tr>
                       </tbody>
                     </table>
