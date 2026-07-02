@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, useCallback } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { SolverResult } from "@/lib/ghost/solver";
 import { ALL_STAT_NAMES, STAT_LABELS } from "@/lib/ghost/mods";
@@ -36,9 +36,9 @@ export function GhostModAdvisor() {
     workerRef.current = worker;
   }
 
-  const setTarget = useCallback((stat: ArmorStatName, val: number) => {
+  function setTarget(stat: ArmorStatName, val: number) {
     setTargets((prev) => ({ ...prev, [stat]: Math.max(0, val) }));
-  }, []);
+  }
 
   function summarizeAssignments(result: SolverResult): string {
     const counts = new Map<string, { count: number; thirds: string[] }>();
