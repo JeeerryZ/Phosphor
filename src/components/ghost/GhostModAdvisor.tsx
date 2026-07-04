@@ -6,6 +6,7 @@ import type { SolverResult } from "@/lib/ghost/solver";
 import { ALL_STAT_NAMES, STAT_LABELS } from "@/lib/ghost/mods";
 import { EMPTY_ARMOR_STATS } from "@/lib/armor/types";
 import type { ArmorStatName, ArmorStats } from "@/lib/armor/types";
+import { adjustTargetsForFragments, effectiveStatCap } from "@/lib/ghost/fragmentTargets";
 
 // A single stat can get at most +30 per piece (its ghost mod's primary slot) across
 // 5 pieces = 150, plus T5 tuning's +5/piece (always available, 5 pieces = +25) = 175.
@@ -26,21 +27,25 @@ const STAT_MODS_BUDGET_BONUS = 50;
 function clampToCapAndBudget(
   targets: ArmorStats,
   maxStat: number,
-  totalBudget: number
+  totalBudget: number,
+  fragmentBonuses: ArmorStats
 ): ArmorStats {
   const next = { ...targets };
   for (const stat of ALL_STAT_NAMES) {
-    next[stat] = Math.min(maxStat, Math.max(0, next[stat]));
+    const cap = effectiveStatCap(maxStat, fragmentBonuses[stat]);
+    next[stat] = Math.min(cap, Math.max(0, next[stat]));
   }
-  let sum = ALL_STAT_NAMES.reduce((s, k) => s + next[k], 0);
+  let adjusted = adjustTargetsForFragments(next, fragmentBonuses);
+  let sum = ALL_STAT_NAMES.reduce((s, k) => s + adjusted[k], 0);
   while (sum > totalBudget) {
     let biggest = ALL_STAT_NAMES[0];
     for (const stat of ALL_STAT_NAMES) {
-      if (next[stat] > next[biggest]) biggest = stat;
+      if (adjusted[stat] > adjusted[biggest]) biggest = stat;
     }
-    if (next[biggest] <= 0) break;
+    if (adjusted[biggest] <= 0) break;
     next[biggest] -= 5;
-    sum -= 5;
+    adjusted = adjustTargetsForFragments(next, fragmentBonuses);
+    sum = ALL_STAT_NAMES.reduce((s, k) => s + adjusted[k], 0);
   }
   return next;
 }
@@ -49,12 +54,15 @@ export function GhostModAdvisor() {
   const [targets, setTargets] = useState<ArmorStats>({ ...EMPTY_ARMOR_STATS });
   const [masterwork, setMasterwork] = useState(false);
   const [statMods, setStatMods] = useState(false);
+  const [fragmentBonuses, setFragmentBonuses] = useState<ArmorStats>({ ...EMPTY_ARMOR_STATS });
+  const [fragmentsOpen, setFragmentsOpen] = useState(false);
   const maxStat = statMods ? MAX_STAT_WITH_STAT_MODS : MAX_STAT_FROM_MODS;
   const totalBudget =
     BASE_BUDGET +
     (masterwork ? MASTERWORK_BUDGET_BONUS : 0) +
     (statMods ? STAT_MODS_BUDGET_BONUS : 0);
-  const usedBudget = ALL_STAT_NAMES.reduce((s, k) => s + targets[k], 0);
+  const adjustedTargets = adjustTargetsForFragments(targets, fragmentBonuses);
+  const usedBudget = ALL_STAT_NAMES.reduce((s, k) => s + adjustedTargets[k], 0);
   const [results, setResults] = useState<SolverResult[] | null>(null);
   const [solving, setSolving] = useState(false);
   const [debugOpen, setDebugOpen] = useState(true);
@@ -79,18 +87,18 @@ export function GhostModAdvisor() {
         worker.terminate();
         workerRef.current = null;
       };
-      worker.postMessage({ targets, options: { masterwork, statMods } });
+      worker.postMessage({ targets: adjustedTargets, options: { masterwork, statMods } });
       workerRef.current = worker;
     }, 300);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targets, masterwork, statMods]);
+  }, [targets, masterwork, statMods, fragmentBonuses]);
 
   function handleMasterworkChange(checked: boolean) {
     setMasterwork(checked);
     const newBudget =
       BASE_BUDGET + (checked ? MASTERWORK_BUDGET_BONUS : 0) + (statMods ? STAT_MODS_BUDGET_BONUS : 0);
-    setTargets((prev) => clampToCapAndBudget(prev, maxStat, newBudget));
+    setTargets((prev) => clampToCapAndBudget(prev, maxStat, newBudget, fragmentBonuses));
   }
 
   function handleStatModsChange(checked: boolean) {
@@ -98,15 +106,28 @@ export function GhostModAdvisor() {
     const newMax = checked ? MAX_STAT_WITH_STAT_MODS : MAX_STAT_FROM_MODS;
     const newBudget =
       BASE_BUDGET + (masterwork ? MASTERWORK_BUDGET_BONUS : 0) + (checked ? STAT_MODS_BUDGET_BONUS : 0);
-    setTargets((prev) => clampToCapAndBudget(prev, newMax, newBudget));
+    setTargets((prev) => clampToCapAndBudget(prev, newMax, newBudget, fragmentBonuses));
+  }
+
+  function applyFragmentBonuses(next: ArmorStats) {
+    setFragmentBonuses(next);
+    setTargets((prev) => clampToCapAndBudget(prev, maxStat, totalBudget, next));
+  }
+
+  function handleFragmentBonusChange(stat: ArmorStatName, value: number) {
+    applyFragmentBonuses({ ...fragmentBonuses, [stat]: value });
   }
 
   function setTarget(stat: ArmorStatName, val: number) {
     setTargets((prev) => {
-      const othersSum = ALL_STAT_NAMES.reduce((s, k) => (k === stat ? s : s + prev[k]), 0);
-      const capped = Math.min(maxStat, Math.max(0, val));
-      const withinBudget = Math.max(0, Math.min(capped, totalBudget - othersSum));
-      return { ...prev, [stat]: withinBudget };
+      const cap = effectiveStatCap(maxStat, fragmentBonuses[stat]);
+      const raw = Math.min(cap, Math.max(0, val));
+      const candidate = { ...prev, [stat]: raw };
+      const adjusted = adjustTargetsForFragments(candidate, fragmentBonuses);
+      const adjustedSum = ALL_STAT_NAMES.reduce((s, k) => s + adjusted[k], 0);
+      if (adjustedSum <= totalBudget) return candidate;
+      const excess = adjustedSum - totalBudget;
+      return { ...prev, [stat]: Math.max(0, raw - excess) };
     });
   }
 
@@ -152,11 +173,12 @@ export function GhostModAdvisor() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {ALL_STAT_NAMES.map((stat) => {
-            const atMax = targets[stat] >= maxStat || usedBudget >= totalBudget;
+            const cap = effectiveStatCap(maxStat, fragmentBonuses[stat]);
+            const atMax = targets[stat] >= cap || usedBudget >= totalBudget;
             return (
               <div key={stat} className="flex flex-col gap-1">
                 <span className="text-xs uppercase tracking-widest text-fg-dim">
-                  {STAT_LABELS[stat]} <span className="text-fg-muted">/ {maxStat}</span>
+                  {STAT_LABELS[stat]} <span className="text-fg-muted">/ {cap}</span>
                 </span>
                 <div className="flex border border-border focus-within:border-border-active">
                   <button
@@ -210,6 +232,47 @@ export function GhostModAdvisor() {
         </div>
       </section>
 
+      {/* Subclass Fragments — free stat source outside of mods; reduces what mods need to cover */}
+      <section>
+        <details open={fragmentsOpen} onToggle={(e) => setFragmentsOpen((e.target as HTMLDetailsElement).open)}>
+          <summary className="text-sm uppercase tracking-widest text-fg-dim text-glow cursor-pointer mb-4 list-none flex items-center gap-2">
+            <span>{fragmentsOpen ? "▾" : "▸"}</span>
+            Subclass Fragments
+          </summary>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {ALL_STAT_NAMES.map((stat) => {
+              const bonus = fragmentBonuses[stat];
+              return (
+                <div key={stat} className="flex flex-col gap-1">
+                  <span className="text-xs uppercase tracking-widest text-fg-dim">{STAT_LABELS[stat]}</span>
+                  <div className="flex border border-border focus-within:border-border-active">
+                    <button
+                      type="button"
+                      onClick={() => handleFragmentBonusChange(stat, Math.max(-30, bonus - 5))}
+                      disabled={bonus <= -30}
+                      className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-r border-border transition-colors select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      −
+                    </button>
+                    <span className="flex-1 text-center text-sm py-2 text-fg">
+                      {bonus > 0 ? `+${bonus}` : bonus}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleFragmentBonusChange(stat, Math.min(30, bonus + 5))}
+                      disabled={bonus >= 30}
+                      className="px-3 py-2 text-fg-muted hover:text-fg hover:bg-white/5 border-l border-border transition-colors select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      </section>
+
       {/* Results — auto-updates live as targets/options change */}
       {usedBudget > 0 && (
         <section className="space-y-6">
@@ -236,7 +299,7 @@ export function GhostModAdvisor() {
                   <span className="text-fg-dim uppercase tracking-widest">Projected</span>
                   <span className="text-fg-dim uppercase tracking-widest">Target</span>
                   {ALL_STAT_NAMES.map((stat) => {
-                    const projected = result.projected[stat];
+                    const projected = result.projected[stat] + fragmentBonuses[stat];
                     const target = targets[stat];
                     const deficit = Math.max(0, target - projected);
                     return (
@@ -319,12 +382,28 @@ export function GhostModAdvisor() {
                           </tr>
                         )}
 
+                        {/* Subclass fragment bonus row (can be negative) */}
+                        {ALL_STAT_NAMES.some((s) => fragmentBonuses[s] !== 0) && (
+                          <tr className="border-t border-border/40 text-fg-dim italic">
+                            <td className="py-1 pr-4">Subclass Fragments</td>
+                            {ALL_STAT_NAMES.map((s) => (
+                              <td key={s} className="text-right px-2 py-1">
+                                {fragmentBonuses[s] !== 0
+                                  ? fragmentBonuses[s] > 0
+                                    ? `+${fragmentBonuses[s]}`
+                                    : fragmentBonuses[s]
+                                  : "—"}
+                              </td>
+                            ))}
+                          </tr>
+                        )}
+
                         {/* Total row */}
                         <tr className="border-t-2 border-border font-bold">
                           <td className="text-fg py-1 pr-4">Total</td>
                           {ALL_STAT_NAMES.map((s) => (
                             <td key={s} className="text-right px-2 py-1 text-fg">
-                              {result.projected[s].toFixed(1)}
+                              {(result.projected[s] + fragmentBonuses[s]).toFixed(1)}
                             </td>
                           ))}
                         </tr>
