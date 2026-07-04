@@ -7,6 +7,7 @@ import { ALL_STAT_NAMES, STAT_LABELS } from "@/lib/ghost/mods";
 import { EMPTY_ARMOR_STATS } from "@/lib/armor/types";
 import type { ArmorStatName, ArmorStats } from "@/lib/armor/types";
 import { adjustTargetsForFragments, effectiveStatCap } from "@/lib/ghost/fragmentTargets";
+import { CLASS_TYPE_LABELS } from "@/styles/theme";
 
 // A single stat can get at most +30 per piece (its ghost mod's primary slot) across
 // 5 pieces = 150, plus T5 tuning's +5/piece (always available, 5 pieces = +25) = 175.
@@ -50,12 +51,21 @@ function clampToCapAndBudget(
   return next;
 }
 
-export function GhostModAdvisor() {
+interface GhostModAdvisorProps {
+  characters?: Record<string, { classType: number }>;
+}
+
+export function GhostModAdvisor({ characters = {} }: GhostModAdvisorProps) {
   const [targets, setTargets] = useState<ArmorStats>({ ...EMPTY_ARMOR_STATS });
   const [masterwork, setMasterwork] = useState(false);
   const [statMods, setStatMods] = useState(false);
   const [fragmentBonuses, setFragmentBonuses] = useState<ArmorStats>({ ...EMPTY_ARMOR_STATS });
   const [fragmentsOpen, setFragmentsOpen] = useState(false);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [importState, setImportState] = useState<"idle" | "loading" | "error">("idle");
+  const importRequestIdRef = useRef(0);
+  const characterEntries = Object.entries(characters);
+  const activeCharacterId = selectedCharacterId ?? characterEntries[0]?.[0] ?? null;
   const maxStat = statMods ? MAX_STAT_WITH_STAT_MODS : MAX_STAT_FROM_MODS;
   const totalBudget =
     BASE_BUDGET +
@@ -116,6 +126,25 @@ export function GhostModAdvisor() {
 
   function handleFragmentBonusChange(stat: ArmorStatName, value: number) {
     applyFragmentBonuses({ ...fragmentBonuses, [stat]: value });
+  }
+
+  async function handleImportFragments() {
+    if (!activeCharacterId) return;
+    const requestId = ++importRequestIdRef.current;
+    setImportState("loading");
+    try {
+      const response = await fetch(`/api/loadout/fragments?characterId=${activeCharacterId}`);
+      if (!response.ok) throw new Error("Import failed");
+      const data = (await response.json()) as { stats: ArmorStats };
+      if (importRequestIdRef.current !== requestId) return;
+      applyFragmentBonuses(data.stats);
+      setImportState("idle");
+    } catch (err) {
+      if (importRequestIdRef.current !== requestId) return;
+      console.error("Failed to import fragment stats:", err);
+      setImportState("error");
+      setTimeout(() => setImportState("idle"), 3000);
+    }
   }
 
   function setTarget(stat: ArmorStatName, val: number) {
@@ -239,6 +268,39 @@ export function GhostModAdvisor() {
             <span>{fragmentsOpen ? "▾" : "▸"}</span>
             Subclass Fragments
           </summary>
+          <div className="flex items-center gap-3 mb-4">
+            {characterEntries.length > 1 && (
+              <select
+                value={activeCharacterId ?? ""}
+                onChange={(e) => setSelectedCharacterId(e.target.value)}
+                className="bg-transparent border border-border text-xs text-fg-dim px-2 py-1 focus:outline-none focus:border-border-active"
+              >
+                {characterEntries.map(([id, c]) => (
+                  <option key={id} value={id} className="bg-surface">
+                    {CLASS_TYPE_LABELS[c.classType] ?? "Unknown"}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={handleImportFragments}
+              disabled={!activeCharacterId || importState === "loading"}
+              title={!activeCharacterId ? "Log in to import fragments" : undefined}
+              className={
+                "text-xs uppercase tracking-widest border px-2 py-1 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed " +
+                (importState === "error"
+                  ? "border-red-400/40 text-red-400 hover:bg-red-400/10"
+                  : "border-border text-fg-muted hover:border-border-active hover:text-fg-dim")
+              }
+            >
+              {importState === "loading"
+                ? "Importing…"
+                : importState === "error"
+                  ? "Failed — Retry"
+                  : "Import from equipped"}
+            </button>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {ALL_STAT_NAMES.map((stat) => {
               const bonus = fragmentBonuses[stat];
