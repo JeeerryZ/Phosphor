@@ -6,12 +6,15 @@
   --color-bg:             #090700;
   --color-surface:        #100c00;
   --color-surface-raised: #191300;
-  --color-border:         #3a2808;
-  --color-border-active:  #6e4c12;
+  /* border/border-active/fg-dim/fg-muted are tuned to clear WCAG AA contrast
+     (>=3:1 for UI borders, >=4.5:1 for text) against bg/surface/surface-raised —
+     the original values were as low as 1.4:1 (borders) and 1.6:1 (fg-muted text). */
+  --color-border:         #8b5918;
+  --color-border-active:  #ad701f;
 
   --color-fg:       #e8a030;   /* main phosphor amber          */
-  --color-fg-dim:   #9a6215;   /* dim — labels, secondary text */
-  --color-fg-muted: #4a2e08;   /* very dim — placeholders      */
+  --color-fg-dim:   #c67d10;   /* dim — labels, secondary text */
+  --color-fg-muted: #b3710f;   /* muted — placeholders, still readable body text */
 
   --color-accent:  #ffcc55;    /* bright amber — active / focus */
   --color-warn:    #ffe082;    /* exotic gold — slightly cooler */

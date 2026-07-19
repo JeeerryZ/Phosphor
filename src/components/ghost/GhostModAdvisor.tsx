@@ -290,7 +290,7 @@ export function GhostModAdvisor({ characters = {} }: GhostModAdvisorProps) {
               className={
                 "text-xs uppercase tracking-widest border px-2 py-1 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed " +
                 (importState === "error"
-                  ? "border-red-400/40 text-red-400 hover:bg-red-400/10"
+                  ? "border-error/40 text-error hover:bg-error/10"
                   : "border-border text-fg-muted hover:border-border-active hover:text-fg-dim")
               }
             >
@@ -350,7 +350,7 @@ export function GhostModAdvisor({ characters = {} }: GhostModAdvisorProps) {
           ) : (
             results.slice(0, 5).map((result, ri) => (
               <div key={ri} className="border border-border p-4 space-y-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <span className="text-xs text-fg-dim">#{ri + 1}</span>
                   <span className="text-sm text-fg">{summarizeAssignments(result)}</span>
                 </div>
@@ -367,7 +367,7 @@ export function GhostModAdvisor({ characters = {} }: GhostModAdvisorProps) {
                     return (
                       <Fragment key={stat}>
                         <span className="text-fg-dim">{STAT_LABELS[stat]}</span>
-                        <span className={deficit > 0 ? "text-red-400" : "text-green-400"}>
+                        <span className={deficit > 0 ? "text-error" : "text-success"}>
                           {projected.toFixed(1)}
                         </span>
                         <span className="text-fg-dim">{target}</span>

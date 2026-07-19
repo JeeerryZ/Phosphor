@@ -84,7 +84,7 @@ export function ArmorCard({ item, index = 0 }: ArmorCardProps) {
               >
                 {ARMOR_STAT_LABELS[stat]}
               </span>
-              <div className="h-1.5 flex-1 overflow-hidden bg-panel-raised" style={{ backgroundColor: "rgba(0,255,0,0.06)" }}>
+              <div className="h-1.5 flex-1 overflow-hidden bg-surface-raised">
                 <div
                   className={cn("h-full transition-[width]", isIncreased ? "bg-accent" : "bg-fg-dim")}
                   style={{
