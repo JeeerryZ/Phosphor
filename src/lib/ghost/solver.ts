@@ -5,7 +5,7 @@ import type { GhostMod } from "./mods";
 
 export interface GhostModAssignment {
   mod: GhostMod;
-  /** Which of the mod's two stats gets the +30 (the other gets +25). */
+  /** The mod's statA, which always gets the +30 (statB always gets +25 — fixed per mod, not a choice). */
   primaryStat: ArmorStatName;
   thirdStat: ArmorStatName;
 }
@@ -109,7 +109,6 @@ export function solve(targets: ArmorStats, options: SolverOptions): SolverResult
   // Mutable scratch buffers reused across the whole search to avoid per-iteration
   // allocation — this loop runs tens of millions of times.
   const base = new Array<number>(numStats).fill(0);
-  const primaryIdx = new Array<number>(5).fill(0);
   const maxAllocations = T5_TUNING_SLOTS + STAT_MODS_SLOTS;
   const allocatedIdx = new Array<number>(maxAllocations).fill(-1);
   const allocatedValue = new Array<number>(maxAllocations).fill(0);
@@ -134,7 +133,9 @@ export function solve(targets: ArmorStats, options: SolverOptions): SolverResult
 
       base.fill(0);
       for (let i = 0; i < 5; i++) {
-        base[statAIdx[i]] += 25;
+        // statA always gets +30 and statB always gets +25 — this is fixed per mod
+        // (e.g. Powerhouse always gives Weapons +30 / Super +25), not a free choice.
+        base[statAIdx[i]] += 30;
         base[statBIdx[i]] += 25;
         base[thirdIdx[i]] += 20;
 
@@ -150,115 +151,102 @@ export function solve(targets: ArmorStats, options: SolverOptions): SolverResult
         masterworkIdx.push(uncovered);
       }
 
-      // Enumerate which of each piece's 2 stats gets the +5 bonus (30 vs 25).
-      for (let mask = 0; mask < 32; mask++) {
-        for (let i = 0; i < 5; i++) {
-          const bit = (mask >> i) & 1;
-          const p = bit ? statBIdx[i] : statAIdx[i];
-          primaryIdx[i] = p;
-          base[p] += 5;
-        }
-
-        // Combined greedy: at each step, apply whichever available token (T5's +5,
-        // always available; Stat Mods' +10, if enabled) to whichever stat yields the
-        // biggest reduction in squared deficit. This is optimal for this separable,
-        // diminishing-returns allocation problem (see project memory on T5 tuning).
-        let allocatedCount = 0;
-        let t5Remaining = T5_TUNING_SLOTS;
-        let statModsRemaining = options.statMods ? STAT_MODS_SLOTS : 0;
-        while (t5Remaining > 0 || statModsRemaining > 0) {
-          let bestBenefit = 0;
-          let bestStat = -1;
-          let bestValue = 0;
-          let bestIsT5 = true;
-          for (let s = 0; s < numStats; s++) {
-            const deficit = targetArr[s] - base[s];
-            const oldPenalty = deficit > 0 ? deficit * deficit : 0;
-            if (t5Remaining > 0) {
-              const newDeficit = deficit - T5_TUNING_VALUE;
-              const newPenalty = newDeficit > 0 ? newDeficit * newDeficit : 0;
-              const benefit = oldPenalty - newPenalty;
-              if (benefit > bestBenefit) {
-                bestBenefit = benefit;
-                bestStat = s;
-                bestValue = T5_TUNING_VALUE;
-                bestIsT5 = true;
-              }
-            }
-            if (statModsRemaining > 0) {
-              const newDeficit = deficit - STAT_MODS_VALUE;
-              const newPenalty = newDeficit > 0 ? newDeficit * newDeficit : 0;
-              const benefit = oldPenalty - newPenalty;
-              if (benefit > bestBenefit) {
-                bestBenefit = benefit;
-                bestStat = s;
-                bestValue = STAT_MODS_VALUE;
-                bestIsT5 = false;
-              }
-            }
-          }
-          if (bestStat === -1) break;
-          base[bestStat] += bestValue;
-          allocatedIdx[allocatedCount] = bestStat;
-          allocatedValue[allocatedCount] = bestValue;
-          allocatedIsT5[allocatedCount] = bestIsT5;
-          allocatedCount++;
-          if (bestIsT5) t5Remaining--; else statModsRemaining--;
-        }
-
-        let score = 0;
+      // Combined greedy: at each step, apply whichever available token (T5's +5,
+      // always available; Stat Mods' +10, if enabled) to whichever stat yields the
+      // biggest reduction in squared deficit. This is optimal for this separable,
+      // diminishing-returns allocation problem (see project memory on T5 tuning).
+      let allocatedCount = 0;
+      let t5Remaining = T5_TUNING_SLOTS;
+      let statModsRemaining = options.statMods ? STAT_MODS_SLOTS : 0;
+      while (t5Remaining > 0 || statModsRemaining > 0) {
+        let bestBenefit = 0;
+        let bestStat = -1;
+        let bestValue = 0;
+        let bestIsT5 = true;
         for (let s = 0; s < numStats; s++) {
           const deficit = targetArr[s] - base[s];
-          if (deficit > 0) score += deficit * deficit;
-        }
-
-        if (heap.length < 5 || score < heap[heap.length - 1].score) {
-          const projected = arrayToStats(base);
-          for (let k = 0; k < allocatedCount; k++) base[allocatedIdx[k]] -= allocatedValue[k];
-          const baseProjected = arrayToStats(base);
-
-          const statModAllocation: Partial<Record<ArmorStatName, number>> = {};
-          const t5Allocation: Partial<Record<ArmorStatName, number>> = {};
-          for (let k = 0; k < allocatedCount; k++) {
-            const statName = ALL_STAT_NAMES[allocatedIdx[k]];
-            if (allocatedIsT5[k]) {
-              t5Allocation[statName] = (t5Allocation[statName] ?? 0) + allocatedValue[k];
-            } else {
-              statModAllocation[statName] = (statModAllocation[statName] ?? 0) + allocatedValue[k];
+          const oldPenalty = deficit > 0 ? deficit * deficit : 0;
+          if (t5Remaining > 0) {
+            const newDeficit = deficit - T5_TUNING_VALUE;
+            const newPenalty = newDeficit > 0 ? newDeficit * newDeficit : 0;
+            const benefit = oldPenalty - newPenalty;
+            if (benefit > bestBenefit) {
+              bestBenefit = benefit;
+              bestStat = s;
+              bestValue = T5_TUNING_VALUE;
+              bestIsT5 = true;
             }
           }
-
-          const assignments: GhostModAssignment[] = modCombo.map((mod, i) => ({
-            mod,
-            primaryStat: ALL_STAT_NAMES[primaryIdx[i]],
-            thirdStat: thirdStats[i],
-          }));
-
-          const debug: DebugContribution[] = modCombo.map((mod, i) => {
-            const secondaryIdx = primaryIdx[i] === statAIdx[i] ? statBIdx[i] : statAIdx[i];
-            const masterworkContributions: Partial<Record<ArmorStatName, number>> = {};
-            for (const s of masterworkIdx[i]) {
-              masterworkContributions[ALL_STAT_NAMES[s]] = 5;
+          if (statModsRemaining > 0) {
+            const newDeficit = deficit - STAT_MODS_VALUE;
+            const newPenalty = newDeficit > 0 ? newDeficit * newDeficit : 0;
+            const benefit = oldPenalty - newPenalty;
+            if (benefit > bestBenefit) {
+              bestBenefit = benefit;
+              bestStat = s;
+              bestValue = STAT_MODS_VALUE;
+              bestIsT5 = false;
             }
-            return {
-              modName: mod.name,
-              contributions: {
-                [ALL_STAT_NAMES[primaryIdx[i]]]: 30,
-                [ALL_STAT_NAMES[secondaryIdx]]: 25,
-                [thirdStats[i]]: 20,
-              } as Partial<Record<ArmorStatName, number>>,
-              masterworkContributions,
-            };
-          });
+          }
+        }
+        if (bestStat === -1) break;
+        base[bestStat] += bestValue;
+        allocatedIdx[allocatedCount] = bestStat;
+        allocatedValue[allocatedCount] = bestValue;
+        allocatedIsT5[allocatedCount] = bestIsT5;
+        allocatedCount++;
+        if (bestIsT5) t5Remaining--; else statModsRemaining--;
+      }
 
-          heap.push({ score, assignments, projected, baseProjected, statModAllocation, t5Allocation, debug });
-          heap.sort((a, b) => a.score - b.score);
-          if (heap.length > 5) heap.pop();
-        } else {
-          for (let k = 0; k < allocatedCount; k++) base[allocatedIdx[k]] -= allocatedValue[k];
+      let score = 0;
+      for (let s = 0; s < numStats; s++) {
+        const deficit = targetArr[s] - base[s];
+        if (deficit > 0) score += deficit * deficit;
+      }
+
+      if (heap.length < 5 || score < heap[heap.length - 1].score) {
+        const projected = arrayToStats(base);
+        for (let k = 0; k < allocatedCount; k++) base[allocatedIdx[k]] -= allocatedValue[k];
+        const baseProjected = arrayToStats(base);
+
+        const statModAllocation: Partial<Record<ArmorStatName, number>> = {};
+        const t5Allocation: Partial<Record<ArmorStatName, number>> = {};
+        for (let k = 0; k < allocatedCount; k++) {
+          const statName = ALL_STAT_NAMES[allocatedIdx[k]];
+          if (allocatedIsT5[k]) {
+            t5Allocation[statName] = (t5Allocation[statName] ?? 0) + allocatedValue[k];
+          } else {
+            statModAllocation[statName] = (statModAllocation[statName] ?? 0) + allocatedValue[k];
+          }
         }
 
-        for (let i = 0; i < 5; i++) base[primaryIdx[i]] -= 5;
+        const assignments: GhostModAssignment[] = modCombo.map((mod, i) => ({
+          mod,
+          primaryStat: ALL_STAT_NAMES[statAIdx[i]],
+          thirdStat: thirdStats[i],
+        }));
+
+        const debug: DebugContribution[] = modCombo.map((mod, i) => {
+          const masterworkContributions: Partial<Record<ArmorStatName, number>> = {};
+          for (const s of masterworkIdx[i]) {
+            masterworkContributions[ALL_STAT_NAMES[s]] = 5;
+          }
+          return {
+            modName: mod.name,
+            contributions: {
+              [ALL_STAT_NAMES[statAIdx[i]]]: 30,
+              [ALL_STAT_NAMES[statBIdx[i]]]: 25,
+              [thirdStats[i]]: 20,
+            } as Partial<Record<ArmorStatName, number>>,
+            masterworkContributions,
+          };
+        });
+
+        heap.push({ score, assignments, projected, baseProjected, statModAllocation, t5Allocation, debug });
+        heap.sort((a, b) => a.score - b.score);
+        if (heap.length > 5) heap.pop();
+      } else {
+        for (let k = 0; k < allocatedCount; k++) base[allocatedIdx[k]] -= allocatedValue[k];
       }
     }
   }
