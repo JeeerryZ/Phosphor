@@ -49,7 +49,7 @@ export interface ArmorItem {
   power: number;
   /** Gear tier (e.g. 5 for Edge of Fate "Tier 5" armor), if known. */
   gearTier: number | undefined;
-  /** Whether the item has full (10/10) masterwork energy capacity. */
+  /** Whether the item has a masterwork plug inserted (all armor sits at 11/11 energy regardless). */
   isMasterworked: boolean;
   /** "vault" or a characterId */
   location: string;

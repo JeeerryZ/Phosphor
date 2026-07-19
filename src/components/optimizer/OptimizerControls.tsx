@@ -82,7 +82,7 @@ export function OptimizerControls({
             />
           </button>
           <span className="text-[12px] uppercase tracking-widest text-fg-muted group-hover:text-fg-dim transition-colors">
-            Masterwork only
+            Assume masterworked
           </span>
         </label>
 

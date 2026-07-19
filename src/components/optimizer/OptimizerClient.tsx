@@ -604,7 +604,6 @@ export function OptimizerClient({ inventory, statIcons, defaultClassType, charac
                     onLockSlot={handleLockSlot}
                     onUnlockSlot={handleUnlockSlot}
                     maxStats={absoluteMaxStats}
-                    masterworkOnly={masterworkOnly}
                   />
                 )}
               </div>

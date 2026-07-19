@@ -4,7 +4,7 @@ import { ensureManifestUpToDate } from "@/lib/manifest/sync";
 import { getProfileWithArmor } from "@/lib/bungie/profile";
 import { transformProfileToArmorInventory } from "@/lib/armor/transform";
 import type { ArmorSlot, ArmorStats } from "@/lib/armor/types";
-import { buildCandidatesBySlot, findItemByInstanceId } from "@/lib/optimizer/candidates";
+import { buildCandidatesBySlot, findItemByInstanceId, withAssumedMasterwork } from "@/lib/optimizer/candidates";
 import { computeOptimizerQuery } from "@/lib/optimizer";
 import { zeroVector } from "@/lib/optimizer/vectors";
 
@@ -36,12 +36,16 @@ export async function POST(request: Request) {
   const profile = await getProfileWithArmor(session);
   const inventory = transformProfileToArmorInventory(profile);
 
-  const exotic = body.exoticItemInstanceId
+  let exotic = body.exoticItemInstanceId
     ? findItemByInstanceId(inventory, body.exoticItemInstanceId) ?? null
     : null;
 
   if (body.exoticItemInstanceId && !exotic) {
     return NextResponse.json({ error: "Exotic item not found in inventory" }, { status: 404 });
+  }
+
+  if (exotic && masterworkOnly) {
+    exotic = withAssumedMasterwork(exotic);
   }
 
   const candidatesBySlot = buildCandidatesBySlot(inventory, exotic, {

@@ -33,10 +33,9 @@ interface OptimizerResultsProps {
   onLockSlot: (slot: ArmorSlot, item: ArmorItem) => void;
   onUnlockSlot: (slot: ArmorSlot) => void;
   maxStats?: Record<ArmorStatName, number> | null;
-  masterworkOnly?: boolean;
 }
 
-export function OptimizerResults({ results, thresholds, onEquip, lockedItems, onLockSlot, onUnlockSlot, maxStats, masterworkOnly }: OptimizerResultsProps) {
+export function OptimizerResults({ results, thresholds, onEquip, lockedItems, onLockSlot, onUnlockSlot, maxStats }: OptimizerResultsProps) {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [equipStates, setEquipStates] = useState<Record<string, EquipState>>({});
@@ -54,9 +53,6 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
         }
       }
     }
-    // If no threshold is even set yet there's nothing to "lower" — the candidate pool itself
-    // is empty for some slot (e.g. the masterwork filter excludes every item in that slot).
-    const anyThresholdSet = ARMOR_STAT_ORDER.some((stat) => thresholds[stat] > 0);
     return (
       <div className="mt-2 space-y-1">
         <p className="text-sm text-fg-muted">No combinations meet the current thresholds.</p>
@@ -65,12 +61,6 @@ export function OptimizerResults({ results, thresholds, onEquip, lockedItems, on
             <span className="text-warn">↓</span>{" "}
             Try lowering {ARMOR_STAT_LABELS[bottleneckStat]} — max your armor can reach is{" "}
             <span className="text-fg-dim tabular-nums">{maxStats![bottleneckStat]}</span>.
-          </p>
-        )}
-        {!bottleneckStat && !anyThresholdSet && masterworkOnly && (
-          <p className="text-sm text-fg-muted">
-            <span className="text-warn">↓</span>{" "}
-            "Masterwork only" may be excluding every piece in one of your slots — try turning it off.
           </p>
         )}
       </div>

@@ -25,6 +25,9 @@ const TIER_LEGENDARY = 5;
 /** Display name of the socket category holding an exotic class item's real (non-cosmetic) perks. */
 const ARMOR_PERKS_CATEGORY_NAME = "ARMOR PERKS";
 
+/** ItemState bit flag (from bungie-api-ts's ambient ItemState enum) set when a masterwork plug is inserted. */
+const ITEM_STATE_MASTERWORK_BIT = 4;
+
 /**
  * Extracts the randomly-rolled exotic perks from a class item's "ARMOR PERKS" socket
  * categories (there can be more than one such category, and more than 2 perk sockets
@@ -121,7 +124,6 @@ function readTuning(
 interface InstanceInfo {
   power: number;
   gearTier: number | undefined;
-  isMasterworked: boolean;
 }
 
 function readInstanceInfo(itemInstanceId: string | undefined, profile: DestinyProfileResponse): InstanceInfo {
@@ -129,7 +131,6 @@ function readInstanceInfo(itemInstanceId: string | undefined, profile: DestinyPr
   return {
     power: instance?.primaryStat?.value ?? 0,
     gearTier: instance?.gearTier,
-    isMasterworked: instance?.energy?.energyCapacity === 10,
   };
 }
 
@@ -155,7 +156,10 @@ function transformItem(
   }
 
   const tierType = definition.inventory?.tierType ?? 0;
-  const { power, gearTier, isMasterworked } = readInstanceInfo(item.itemInstanceId, profile);
+  const { power, gearTier } = readInstanceInfo(item.itemInstanceId, profile);
+  // Every armor piece now sits at 11/11 energy capacity regardless of masterwork status,
+  // so masterwork must be read from the item's state bitmask instead of energy capacity.
+  const isMasterworked = ((item.state ?? 0) & ITEM_STATE_MASTERWORK_BIT) !== 0;
   const { tuning, tuningSocketIndex } = readTuning(item.itemInstanceId, profile);
 
   const socketEntries = definition.sockets?.socketEntries ?? [];
